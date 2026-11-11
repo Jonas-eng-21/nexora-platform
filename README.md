@@ -25,9 +25,11 @@ frontend/           # futuro (Vue 3 + TS + Vite), com Dockerfile próprio
 | `POSTGRES_PORT` | Porta no host (somente 127.0.0.1), padrão 5432 |
 | `BACKEND_PORT` | Porta da API no host, padrão 8080 |
 | `SPRING_PROFILES_ACTIVE` | Perfil Spring, padrão `dev` |
+| `JWT_SECRET` | Segredo de assinatura do JWT (HS256), mínimo de 32 caracteres; obrigatório. Gere com `openssl rand -base64 48` |
+| `JWT_EXPIRATION` | Validade do token, padrão `60m` |
 
 ```bash
-cp .env.example .env   # depois edite POSTGRES_PASSWORD
+cp .env.example .env   # depois edite POSTGRES_PASSWORD e JWT_SECRET
 ```
 
 ### Subir tudo
