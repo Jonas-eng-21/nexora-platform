@@ -66,6 +66,11 @@ public class User {
 		this.passwordHash = passwordHash;
 	}
 
+	/** As transições permitidas são validadas pelo service que conduz a operação. */
+	public void changeStatus(AccountStatus status) {
+		this.status = status;
+	}
+
 	// O banco exige e-mail em minúsculas para que a unicidade ignore maiúsculas/minúsculas.
 	public static String normalizeEmail(String email) {
 		return email.trim().toLowerCase(Locale.ROOT);
