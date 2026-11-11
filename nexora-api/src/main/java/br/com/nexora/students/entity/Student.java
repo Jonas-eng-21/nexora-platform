@@ -4,7 +4,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
+
+import br.com.nexora.students.resume.Resume;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,6 +48,10 @@ public class Student {
 	@Column(length = 2000)
 	private String summary;
 
+	@JdbcTypeCode(SqlTypes.JSON)
+	@Column(nullable = false)
+	private Resume resume = Resume.empty();
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -63,6 +71,10 @@ public class Student {
 		this.institution = blankToNull(institution);
 		this.location = blankToNull(location);
 		this.summary = blankToNull(summary);
+	}
+
+	public void replaceResume(Resume resume) {
+		this.resume = resume;
 	}
 
 	private static String blankToNull(String value) {

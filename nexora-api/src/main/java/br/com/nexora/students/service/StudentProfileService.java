@@ -10,6 +10,7 @@ import br.com.nexora.shared.exception.ApiException;
 import br.com.nexora.students.dto.UpdateStudentProfileRequest;
 import br.com.nexora.students.entity.Student;
 import br.com.nexora.students.repository.StudentRepository;
+import br.com.nexora.students.resume.Resume;
 
 @Service
 public class StudentProfileService {
@@ -34,5 +35,13 @@ public class StudentProfileService {
 		student.updateProfile(request.fullName(), request.course(), request.institution(), request.location(),
 				request.summary());
 		return studentRepository.save(student);
+	}
+
+	/** Substitui o currículo-base inteiro. Exige perfil já criado. */
+	@Transactional
+	public Resume saveResume(UUID userId, Resume resume) {
+		Student student = getByUserId(userId);
+		student.replaceResume(resume);
+		return student.getResume();
 	}
 }
