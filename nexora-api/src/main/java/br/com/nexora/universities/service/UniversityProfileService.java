@@ -2,6 +2,8 @@ package br.com.nexora.universities.service;
 
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -30,6 +32,11 @@ public class UniversityProfileService {
 		University university = new University(userId);
 		apply(university, request);
 		return universityRepository.save(university);
+	}
+
+	@Transactional(readOnly = true)
+	public Page<University> listActive(Pageable pageable) {
+		return universityRepository.findActive(pageable);
 	}
 
 	@Transactional(readOnly = true)
