@@ -49,6 +49,15 @@ public class UniversityAffiliation {
 	@Column(name = "requested_at", nullable = false, updatable = false)
 	private Instant requestedAt;
 
+	@Column(name = "decided_by")
+	private UUID decidedBy;
+
+	@Column(name = "decided_at")
+	private Instant decidedAt;
+
+	@Column(name = "decision_reason", length = 500)
+	private String decisionReason;
+
 	@UpdateTimestamp
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
@@ -60,5 +69,13 @@ public class UniversityAffiliation {
 		this.status = AffiliationStatus.PENDING;
 		// Microssegundos: a mesma precisão que o PostgreSQL guarda, para a data não mudar ao ser relida.
 		this.requestedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+	}
+
+	/** Registra a aprovação ou rejeição. Quem chama garante que o pedido ainda está PENDING. */
+	public void recordDecision(AffiliationStatus decision, UUID decidedBy, String reason) {
+		this.status = decision;
+		this.decidedBy = decidedBy;
+		this.decidedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+		this.decisionReason = reason == null || reason.isBlank() ? null : reason.strip();
 	}
 }
