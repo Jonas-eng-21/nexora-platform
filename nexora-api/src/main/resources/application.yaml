@@ -9,6 +9,13 @@ spring:
   flyway:
     enabled: true
 
+# Documentação OpenAPI desligada por padrão; habilitada apenas no perfil dev.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 nexora:
   security:
     jwt:

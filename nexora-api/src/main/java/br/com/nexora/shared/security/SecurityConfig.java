@@ -36,6 +36,8 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+						// Documentação: só é servida no perfil dev (springdoc desligado nos demais → 404).
+						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth -> oauth
 						.authenticationEntryPoint(entryPoint)
