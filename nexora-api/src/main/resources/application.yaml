@@ -1,3 +1,10 @@
 spring:
   application:
     name: nexora-api
+  # Datasource vem de SPRING_DATASOURCE_* (definido no compose.yaml).
+  jpa:
+    hibernate:
+      ddl-auto: validate   # esquema controlado pelo Flyway
+    open-in-view: false
+  flyway:
+    enabled: true
