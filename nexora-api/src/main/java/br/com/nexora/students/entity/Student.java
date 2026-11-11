@@ -1,6 +1,9 @@
 package br.com.nexora.students.entity;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -8,7 +11,11 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
+import br.com.nexora.skills.entity.Skill;
 import br.com.nexora.students.resume.Resume;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -52,6 +59,12 @@ public class Student {
 	@Column(nullable = false)
 	private Resume resume = Resume.empty();
 
+	@ManyToMany
+	@JoinTable(name = "student_skills",
+			joinColumns = @JoinColumn(name = "student_id"),
+			inverseJoinColumns = @JoinColumn(name = "skill_id"))
+	private Set<Skill> skills = new HashSet<>();
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -75,6 +88,11 @@ public class Student {
 
 	public void replaceResume(Resume resume) {
 		this.resume = resume;
+	}
+
+	public void replaceSkills(Collection<Skill> newSkills) {
+		skills.clear();
+		skills.addAll(newSkills);
 	}
 
 	private static String blankToNull(String value) {

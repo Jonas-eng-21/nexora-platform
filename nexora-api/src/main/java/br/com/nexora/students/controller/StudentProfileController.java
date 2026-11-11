@@ -1,5 +1,7 @@
 package br.com.nexora.students.controller;
 
+import java.util.List;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.nexora.shared.security.AuthenticatedUser;
+import br.com.nexora.skills.dto.SkillResponse;
+import br.com.nexora.students.dto.UpdateStudentSkillsRequest;
 import br.com.nexora.students.dto.StudentProfileResponse;
 import br.com.nexora.students.dto.UpdateStudentProfileRequest;
 import br.com.nexora.students.resume.Resume;
@@ -45,6 +49,23 @@ public class StudentProfileController {
 			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
 			@Valid @RequestBody UpdateStudentProfileRequest request) {
 		return StudentProfileResponse.from(studentProfileService.saveProfile(principal.id(), request));
+	}
+
+	@GetMapping("/skills")
+	@Operation(summary = "Consultar as próprias competências técnicas")
+	public List<SkillResponse> getSkills(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal) {
+		return studentProfileService.getSkills(principal.id()).stream().map(SkillResponse::from).toList();
+	}
+
+	@PutMapping("/skills")
+	@Operation(summary = "Definir as próprias competências técnicas a partir do catálogo",
+			description = "Substitui a seleção anterior. Competência fora do catálogo: 400 SKILL_NOT_FOUND.")
+	public List<SkillResponse> replaceSkills(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@Valid @RequestBody UpdateStudentSkillsRequest request) {
+		return studentProfileService.replaceSkills(principal.id(), request.skillIds()).stream()
+				.map(SkillResponse::from).toList();
 	}
 
 	@GetMapping("/resume")

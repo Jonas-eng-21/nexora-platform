@@ -1,5 +1,9 @@
 package br.com.nexora.students.service;
 
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -7,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.com.nexora.shared.exception.ApiException;
+import br.com.nexora.skills.entity.Skill;
+import br.com.nexora.skills.service.SkillService;
 import br.com.nexora.students.dto.UpdateStudentProfileRequest;
 import br.com.nexora.students.entity.Student;
 import br.com.nexora.students.repository.StudentRepository;
@@ -16,9 +22,11 @@ import br.com.nexora.students.resume.Resume;
 public class StudentProfileService {
 
 	private final StudentRepository studentRepository;
+	private final SkillService skillService;
 
-	public StudentProfileService(StudentRepository studentRepository) {
+	public StudentProfileService(StudentRepository studentRepository, SkillService skillService) {
 		this.studentRepository = studentRepository;
+		this.skillService = skillService;
 	}
 
 	@Transactional(readOnly = true)
@@ -35,6 +43,24 @@ public class StudentProfileService {
 		student.updateProfile(request.fullName(), request.course(), request.institution(), request.location(),
 				request.summary());
 		return studentRepository.save(student);
+	}
+
+	/** Competências técnicas do currículo-base, em ordem alfabética. */
+	@Transactional(readOnly = true)
+	public List<Skill> getSkills(UUID userId) {
+		return sortedByName(getByUserId(userId).getSkills());
+	}
+
+	/** Substitui a seleção de competências. Todas devem existir no catálogo. */
+	@Transactional
+	public List<Skill> replaceSkills(UUID userId, Set<UUID> skillIds) {
+		Student student = getByUserId(userId);
+		student.replaceSkills(skillService.getAllByIds(skillIds));
+		return sortedByName(student.getSkills());
+	}
+
+	private static List<Skill> sortedByName(Collection<Skill> skills) {
+		return skills.stream().sorted(Comparator.comparing(Skill::getNormalizedName)).toList();
 	}
 
 	/** Substitui o currículo-base inteiro. Exige perfil já criado. */
