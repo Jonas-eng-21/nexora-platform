@@ -1,3 +1,10 @@
 logging:
   level:
     br.com.nexora: DEBUG
+
+# Swagger UI em /swagger-ui.html e contrato em /v3/api-docs (somente desenvolvimento).
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
