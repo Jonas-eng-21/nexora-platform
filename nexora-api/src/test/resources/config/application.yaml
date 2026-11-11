@@ -1,0 +1,6 @@
+# Carregado além do application.yaml principal (classpath:/config/ tem precedência).
+# Segredo exclusivo dos testes automatizados: nunca usar em ambiente real.
+nexora:
+  security:
+    jwt:
+      secret: test-only-jwt-secret-not-for-real-environments
