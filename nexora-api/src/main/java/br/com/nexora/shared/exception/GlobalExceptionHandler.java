@@ -46,6 +46,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		String detail = switch (ex.getStatus()) {
 			case SUSPENDED -> "Sua conta está suspensa.";
 			case PENDING_APPROVAL -> "Sua conta aguarda aprovação do administrador.";
+			case REJECTED -> "Seu cadastro foi recusado pelo administrador.";
 			case ACTIVE -> throw new IllegalStateException("Active account reported as not active", ex);
 		};
 		return problem(HttpStatus.FORBIDDEN, "ACCOUNT_" + ex.getStatus().name(), detail);
