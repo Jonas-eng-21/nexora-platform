@@ -46,11 +46,17 @@ docker compose up -d --build backend    # reconstruir só o backend
 ```
 
 ### Maven no container
-Os testes (`contextLoads`) precisam do banco. Com a stack no ar:
+Os testes de integração usam um banco separado (`nexora_test`) no mesmo container PostgreSQL,
+para não tocar nos dados de desenvolvimento. Crie-o uma única vez, com a stack no ar:
+```bash
+set -a; . ./.env; set +a
+docker compose exec postgres createdb -U "$POSTGRES_USER" nexora_test
+```
+Para rodar os testes (o Flyway aplica as migrações em `nexora_test`):
 ```bash
 set -a; . ./.env; set +a
 docker run --rm --network nexora_default -v "$PWD/nexora-api:/w" -v nexora_m2:/root/.m2 -w /w \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/$POSTGRES_DB \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/nexora_test \
   -e SPRING_DATASOURCE_USERNAME=$POSTGRES_USER -e SPRING_DATASOURCE_PASSWORD=$POSTGRES_PASSWORD \
   maven:3.9-eclipse-temurin-21 mvn test
 ```
