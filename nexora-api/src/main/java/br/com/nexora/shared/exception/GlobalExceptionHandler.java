@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import br.com.nexora.shared.security.AccountNotActiveException;
+
 /**
  * Ponto único de tradução de exceções para ProblemDetail (application/problem+json).
  * Toda resposta de erro carrega um "code" estável para o frontend.
@@ -37,6 +39,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(AuthenticationException.class)
 	ProblemDetail handleAuthentication(AuthenticationException ex) {
 		return problem(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Autenticação necessária.");
+	}
+
+	@ExceptionHandler(AccountNotActiveException.class)
+	ProblemDetail handleAccountNotActive(AccountNotActiveException ex) {
+		String detail = switch (ex.getStatus()) {
+			case SUSPENDED -> "Sua conta está suspensa.";
+			case PENDING_APPROVAL -> "Sua conta aguarda aprovação do administrador.";
+			case ACTIVE -> throw new IllegalStateException("Active account reported as not active", ex);
+		};
+		return problem(HttpStatus.FORBIDDEN, "ACCOUNT_" + ex.getStatus().name(), detail);
 	}
 
 	@ExceptionHandler(AccessDeniedException.class)
