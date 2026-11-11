@@ -24,6 +24,10 @@ public class TokenService {
 		this.expiration = expiration;
 	}
 
+	public Duration getExpiration() {
+		return expiration;
+	}
+
 	/**
 	 * O token carrega apenas a identidade (sub). Papel e status são lidos do banco a cada
 	 * requisição, para que suspensões e mudanças valham mesmo com o token ainda válido.
