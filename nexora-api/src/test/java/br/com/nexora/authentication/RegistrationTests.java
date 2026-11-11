@@ -69,7 +69,10 @@ class RegistrationTests {
 
 	@Test
 	void universityRegistersAsPendingApproval() throws Exception {
-		register("university@nexora.test", PASSWORD, "UNIVERSITY")
+		mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
+				{"email": "university@nexora.test", "password": "%s", "role": "UNIVERSITY",
+				 "university": {"name": "Universidade de Teste"}}
+				""".formatted(PASSWORD)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.role").value("UNIVERSITY"))
 				.andExpect(jsonPath("$.status").value("PENDING_APPROVAL"));
@@ -78,7 +81,8 @@ class RegistrationTests {
 	@Test
 	void statusSentByClientIsIgnored() throws Exception {
 		mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-				{"email": "sneaky@nexora.test", "password": "%s", "role": "UNIVERSITY", "status": "ACTIVE"}
+				{"email": "sneaky@nexora.test", "password": "%s", "role": "UNIVERSITY", "status": "ACTIVE",
+				 "university": {"name": "Universidade de Teste"}}
 				""".formatted(PASSWORD)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.status").value("PENDING_APPROVAL"));
