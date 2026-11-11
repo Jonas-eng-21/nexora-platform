@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import br.com.nexora.shared.security.AuthenticatedUser;
 import br.com.nexora.students.dto.StudentProfileResponse;
 import br.com.nexora.students.dto.UpdateStudentProfileRequest;
+import br.com.nexora.students.resume.Resume;
 import br.com.nexora.students.service.StudentProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,5 +45,21 @@ public class StudentProfileController {
 			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
 			@Valid @RequestBody UpdateStudentProfileRequest request) {
 		return StudentProfileResponse.from(studentProfileService.saveProfile(principal.id(), request));
+	}
+
+	@GetMapping("/resume")
+	@Operation(summary = "Consultar o próprio currículo-base",
+			description = "Seções ainda não preenchidas vêm como listas vazias.")
+	public Resume getResume(@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal) {
+		return studentProfileService.getByUserId(principal.id()).getResume();
+	}
+
+	@PutMapping("/resume")
+	@Operation(summary = "Salvar o próprio currículo-base",
+			description = "Substituição integral do documento. É a única fonte de dados do matching; "
+					+ "um PDF enviado numa candidatura não o substitui.")
+	public Resume saveResume(@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@Valid @RequestBody Resume resume) {
+		return studentProfileService.saveResume(principal.id(), resume);
 	}
 }
