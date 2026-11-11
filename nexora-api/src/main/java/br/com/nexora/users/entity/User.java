@@ -58,6 +58,14 @@ public class User {
 		this.status = status;
 	}
 
+	public void changeEmail(String email) {
+		this.email = normalizeEmail(email);
+	}
+
+	public void changePasswordHash(String passwordHash) {
+		this.passwordHash = passwordHash;
+	}
+
 	// O banco exige e-mail em minúsculas para que a unicidade ignore maiúsculas/minúsculas.
 	public static String normalizeEmail(String email) {
 		return email.trim().toLowerCase(Locale.ROOT);
