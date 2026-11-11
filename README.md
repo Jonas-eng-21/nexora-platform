@@ -27,6 +27,12 @@ frontend/           # futuro (Vue 3 + TS + Vite), com Dockerfile próprio
 | `SPRING_PROFILES_ACTIVE` | Perfil Spring, padrão `dev` |
 | `JWT_SECRET` | Segredo de assinatura do JWT (HS256), mínimo de 32 caracteres; obrigatório. Gere com `openssl rand -base64 48` |
 | `JWT_EXPIRATION` | Validade do token, padrão `60m` |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Administrador inicial (opcional). Senha com no mínimo 12 caracteres |
+
+### Administrador inicial
+Não existe cadastro público de administrador. Com `ADMIN_EMAIL` e `ADMIN_PASSWORD` definidos no `.env`, o backend
+cria a conta `ADMIN` na subida, **uma única vez**: se já existir uma conta com esse e-mail, nada é alterado
+(a senha não é redefinida e contas de outros papéis não são promovidas). Sem as variáveis, nenhum admin é criado.
 
 ```bash
 cp .env.example .env   # depois edite POSTGRES_PASSWORD e JWT_SECRET
