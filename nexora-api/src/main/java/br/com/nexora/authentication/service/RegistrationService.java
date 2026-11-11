@@ -1,7 +1,5 @@
 package br.com.nexora.authentication.service;
 
-import java.nio.charset.StandardCharsets;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,11 +11,10 @@ import br.com.nexora.users.entity.AccountStatus;
 import br.com.nexora.users.entity.User;
 import br.com.nexora.users.entity.UserRole;
 import br.com.nexora.users.repository.UserRepository;
+import br.com.nexora.users.service.PasswordPolicy;
 
 @Service
 public class RegistrationService {
-
-	private static final int BCRYPT_MAX_BYTES = 72;
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
@@ -33,10 +30,7 @@ public class RegistrationService {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "ROLE_NOT_ALLOWED",
 					"Este perfil não pode ser criado pelo cadastro público.");
 		}
-		// O BCrypt considera apenas os primeiros 72 bytes; rejeitar em vez de truncar em silêncio.
-		if (request.password().getBytes(StandardCharsets.UTF_8).length > BCRYPT_MAX_BYTES) {
-			throw new ApiException(HttpStatus.BAD_REQUEST, "PASSWORD_TOO_LONG", "A senha é longa demais.");
-		}
+		PasswordPolicy.requireHashable(request.password());
 		if (userRepository.existsByEmail(User.normalizeEmail(request.email()))) {
 			throw new ApiException(HttpStatus.CONFLICT, "EMAIL_ALREADY_REGISTERED", "E-mail já cadastrado.");
 		}
