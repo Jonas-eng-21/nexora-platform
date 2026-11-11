@@ -36,7 +36,15 @@ cp .env.example .env   # depois edite POSTGRES_PASSWORD e JWT_SECRET
 ```bash
 docker compose up --build -d
 ```
-API em http://localhost:8080 (sem endpoints públicos ainda; 401/403/404 são esperados — Spring Security ativo).
+API em http://localhost:8080. Rotas protegidas exigem `Authorization: Bearer <token>`; sem token a resposta é 401
+em `application/problem+json`.
+
+### Documentação da API (Swagger)
+Disponível **somente no perfil `dev`** (desligada nos demais perfis):
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- Contrato OpenAPI (JSON): http://localhost:8080/v3/api-docs
+
+Use o botão **Authorize** do Swagger UI para informar o JWT.
 
 ### Dia a dia
 ```bash
