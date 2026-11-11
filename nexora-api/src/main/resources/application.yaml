@@ -17,6 +17,10 @@ springdoc:
     enabled: false
 
 nexora:
+  # Administrador inicial: criado na subida se ambos estiverem definidos e a conta ainda não existir.
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
   security:
     jwt:
       # Segredo HMAC (HS256), mínimo de 32 caracteres. Obrigatório: sem valor padrão de propósito.
