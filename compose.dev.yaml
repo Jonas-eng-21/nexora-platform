@@ -1,0 +1,14 @@
+# Override de desenvolvimento: código montado + Maven no container + DevTools.
+# Uso: docker compose -f compose.yaml -f compose.dev.yaml up -d
+services:
+  backend:
+    image: maven:3.9-eclipse-temurin-21
+    build: !reset null
+    working_dir: /workspace
+    command: mvn -B spring-boot:run
+    volumes:
+      - ./nexora-api:/workspace
+      - maven_cache:/root/.m2
+
+volumes:
+  maven_cache:
