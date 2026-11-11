@@ -8,3 +8,10 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+
+nexora:
+  security:
+    jwt:
+      # Segredo HMAC (HS256), mínimo de 32 caracteres. Obrigatório: sem valor padrão de propósito.
+      secret: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION:60m}
