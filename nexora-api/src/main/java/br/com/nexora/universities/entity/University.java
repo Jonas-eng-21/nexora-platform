@@ -8,6 +8,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -44,6 +46,19 @@ public class University {
 	@Column(length = 2000)
 	private String description;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "approval_status", nullable = false, length = 20)
+	private UniversityApprovalStatus approvalStatus = UniversityApprovalStatus.PENDING;
+
+	@Column(name = "approval_reason", length = 500)
+	private String approvalReason;
+
+	@Column(name = "approval_decided_by")
+	private UUID approvalDecidedBy;
+
+	@Column(name = "approval_decided_at")
+	private Instant approvalDecidedAt;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -63,6 +78,14 @@ public class University {
 		this.location = blankToNull(location);
 		this.website = blankToNull(website);
 		this.description = blankToNull(description);
+	}
+
+	/** Registra a decisão do administrador. Quem chama garante que o cadastro ainda está PENDING. */
+	public void recordApprovalDecision(UniversityApprovalStatus decision, UUID adminId, String reason) {
+		this.approvalStatus = decision;
+		this.approvalDecidedBy = adminId;
+		this.approvalDecidedAt = Instant.now();
+		this.approvalReason = blankToNull(reason);
 	}
 
 	private static String blankToNull(String value) {
