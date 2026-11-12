@@ -180,6 +180,57 @@ class StudentResumeTests {
 	}
 
 	@Test
+	void studentSavesInterestAreasAndWorkModelPreferencesUsedByMatching() throws Exception {
+		User student = createStudentWithProfile("Ana Souza");
+		as(student, get(RESUME_PATH))
+				.andExpect(jsonPath("$.interestAreas").isEmpty())
+				.andExpect(jsonPath("$.preferredWorkModels").isEmpty());
+
+		putResume(student, """
+				{"interestAreas": ["BACKEND", "DATA"], "preferredWorkModels": ["REMOTE", "HYBRID"],
+				 "interests": ["Sistemas distribuídos"]}
+				""").andExpect(status().isOk());
+		entityManager.flush();
+		entityManager.clear();
+
+		as(student, get(RESUME_PATH))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.interestAreas[0]").value("BACKEND"))
+				.andExpect(jsonPath("$.interestAreas[1]").value("DATA"))
+				.andExpect(jsonPath("$.preferredWorkModels[0]").value("REMOTE"))
+				.andExpect(jsonPath("$.preferredWorkModels[1]").value("HYBRID"))
+				.andExpect(jsonPath("$.interests[0]").value("Sistemas distribuídos"));
+		assertThat(jdbcTemplate.queryForObject(
+				"SELECT resume -> 'interestAreas' ->> 0 FROM students", String.class)).isEqualTo("BACKEND");
+	}
+
+	@Test
+	void interestAreasAndWorkModelsMustComeFromTheFixedCatalogs() throws Exception {
+		User student = createStudentWithProfile("Ana Souza");
+
+		putResume(student, "{\"interestAreas\": [\"Área inventada\"]}").andExpect(status().isBadRequest());
+		putResume(student, "{\"preferredWorkModels\": [\"PRESENCIAL\"]}").andExpect(status().isBadRequest());
+		putResume(student, "{\"interestAreas\": [\"BACKEND\", null]}").andExpect(status().isBadRequest());
+
+		as(student, get(RESUME_PATH)).andExpect(jsonPath("$.interestAreas").isEmpty());
+	}
+
+	@Test
+	void resumeSavedBeforeTheNewFieldsStillLoads() throws Exception {
+		User student = createStudentWithProfile("Ana Souza");
+		entityManager.flush();
+		// Documento no formato antigo, sem interestAreas nem preferredWorkModels.
+		jdbcTemplate.update("UPDATE students SET resume = '{\"interests\": [\"Backend\"], \"projects\": []}'::jsonb");
+		entityManager.clear();
+
+		as(student, get(RESUME_PATH))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.interests[0]").value("Backend"))
+				.andExpect(jsonPath("$.interestAreas").isEmpty())
+				.andExpect(jsonPath("$.preferredWorkModels").isEmpty());
+	}
+
+	@Test
 	void oversizedListsAreRejected() throws Exception {
 		User student = createStudentWithProfile("Ana Souza");
 		String manyInterests = "\"x\",".repeat(31);

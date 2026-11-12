@@ -80,7 +80,7 @@ class JobCreationTests {
 				.andExpect(jsonPath("$.companyName").value("Tech Garanhuns"))
 				.andExpect(jsonPath("$.title").value("Estágio em Backend Java"))
 				.andExpect(jsonPath("$.description").value("Desenvolver APIs REST."))
-				.andExpect(jsonPath("$.area").value("Desenvolvimento Backend"))
+				.andExpect(jsonPath("$.area").value("BACKEND"))
 				.andExpect(jsonPath("$.location").value("Garanhuns, PE"))
 				.andExpect(jsonPath("$.workModel").value("HYBRID"))
 				.andExpect(jsonPath("$.level").value("INTERNSHIP"))
@@ -110,7 +110,7 @@ class JobCreationTests {
 
 		createJob(company, """
 				{"title": "Desenvolvedor Júnior", "description": "Atuar no time de produto.",
-				 "area": "Desenvolvimento", "workModel": "REMOTE", "level": "JUNIOR", "status": "CLOSED",
+				 "area": "BACKEND", "workModel": "REMOTE", "level": "JUNIOR", "status": "CLOSED",
 				 "requiredSkillIds": ["%s"]}
 				""".formatted(java))
 				.andExpect(status().isCreated())
@@ -160,16 +160,19 @@ class JobCreationTests {
 		createJob(company, validJob().replace("\"workModel\": \"HYBRID\",", ""))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.errors[0].field").value("workModel"));
-		createJob(company, validJob().replace("\"area\": \"Desenvolvimento Backend\",", ""))
+		createJob(company, validJob().replace("\"area\": \"BACKEND\",", ""))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.errors[0].field").value("area"));
 		createJob(company, """
-				{"title": "Vaga", "description": "Descrição.", "area": "Dev", "workModel": "REMOTE",
+				{"title": "Vaga", "description": "Descrição.", "area": "BACKEND", "workModel": "REMOTE",
 				 "level": "JUNIOR", "requiredSkillIds": []}
 				""")
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.errors[0].field").value("requiredSkillIds"));
 		createJob(company, validJob().replace("\"HYBRID\"", "\"PRESENCIAL\""))
+				.andExpect(status().isBadRequest());
+		// A área vem do catálogo fixo: texto livre não é aceito.
+		createJob(company, validJob().replace("\"area\": \"BACKEND\"", "\"area\": \"Desenvolvimento Backend\""))
 				.andExpect(status().isBadRequest());
 
 		assertThat(jobRows()).isZero();
@@ -221,7 +224,7 @@ class JobCreationTests {
 	private String validJob() {
 		return """
 				{"title": "Estágio em Backend Java", "description": "Desenvolver APIs REST.",
-				 "area": "Desenvolvimento Backend", "location": "Garanhuns, PE", "workModel": "HYBRID",
+				 "area": "BACKEND", "location": "Garanhuns, PE", "workModel": "HYBRID",
 				 "level": "INTERNSHIP", "requiredSkillIds": ["%s", "%s"], "desiredSkillIds": ["%s"]}
 				""".formatted(java, spring, docker);
 	}
