@@ -3,6 +3,7 @@ package br.com.nexora.jobs.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -17,12 +18,16 @@ import br.com.nexora.companies.service.CompanyProfileService;
 import br.com.nexora.jobs.dto.CreateJobRequest;
 import br.com.nexora.jobs.dto.JobResponse;
 import br.com.nexora.jobs.entity.Job;
+import br.com.nexora.jobs.entity.JobLevel;
 import br.com.nexora.jobs.entity.JobSkill;
 import br.com.nexora.jobs.entity.JobStatus;
 import br.com.nexora.jobs.entity.SkillRequirement;
+import br.com.nexora.jobs.entity.WorkModel;
 import br.com.nexora.jobs.repository.JobRepository;
 import br.com.nexora.shared.exception.ApiException;
+import br.com.nexora.shared.security.AuthenticatedUser;
 import br.com.nexora.skills.service.SkillService;
+import br.com.nexora.users.entity.UserRole;
 
 @Service
 public class JobService {
@@ -45,6 +50,34 @@ public class JobService {
 		Job job = new Job(company, request.status() == null ? JobStatus.OPEN : request.status());
 		apply(job, request);
 		return JobResponse.from(jobRepository.save(job));
+	}
+
+	/** Lista apenas vagas OPEN, não excluídas e pertencentes a empresas com conta ACTIVE. */
+	@Transactional(readOnly = true)
+	public Page<JobResponse> searchOpen(String search, String area, String location, WorkModel workModel,
+			JobLevel level, UUID skillId, Pageable pageable) {
+		String normSearch = normalizeFilter(search);
+		String normArea = normalizeFilter(area);
+		String normLocation = normalizeFilter(location);
+		Page<Job> page = skillId == null
+				? jobRepository.searchOpen(normSearch, normArea, normLocation, workModel, level, pageable)
+				: jobRepository.searchOpenBySkill(normSearch, normArea, normLocation, workModel, level, skillId,
+						pageable);
+		return page.map(JobResponse::from);
+	}
+
+	/**
+	 * Vagas excluídas logicamente nunca são retornadas. Vagas encerradas ou de empresa suspensa só são visíveis
+	 * para a própria empresa dona e para o administrador.
+	 */
+	@Transactional(readOnly = true)
+	public JobResponse getDetail(AuthenticatedUser principal, UUID jobId) {
+		Job job = getActiveJobById(jobId);
+		if (principal.role() == UserRole.ADMIN
+				|| (principal.role() == UserRole.COMPANY && job.getCompany().getUserId().equals(principal.id()))) {
+			return JobResponse.from(job);
+		}
+		return JobResponse.from(jobRepository.findOpenFromActiveCompanyById(jobId).orElseThrow(JobService::notFound));
 	}
 
 	@Transactional(readOnly = true)
@@ -140,6 +173,10 @@ public class JobService {
 			skillService.getAllByIds(desired).forEach(skill -> skills.add(new JobSkill(skill, SkillRequirement.DESIRED)));
 		}
 		return skills;
+	}
+
+	private static String normalizeFilter(String value) {
+		return value == null ? "" : value.strip().toLowerCase(Locale.ROOT);
 	}
 
 	private static ApiException notFound() {
