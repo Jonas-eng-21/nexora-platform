@@ -80,7 +80,7 @@ class JobLifecycleTests {
 
 		as(company, put(JOBS + "/" + jobId).contentType(MediaType.APPLICATION_JSON).content("""
 				{"title": "  Desenvolvedor Backend Pleno ", "description": "Arquitetura e APIs.",
-				 "area": "Engenharia de Software", "location": " ", "workModel": "REMOTE",
+				 "area": "FULLSTACK", "location": " ", "workModel": "REMOTE",
 				 "level": "MID", "status": "OPEN",
 				 "requiredSkillIds": ["%s", "%s"], "desiredSkillIds": []}
 				""".formatted(java, postgres)))
@@ -88,7 +88,7 @@ class JobLifecycleTests {
 				.andExpect(jsonPath("$.id").value(jobId))
 				.andExpect(jsonPath("$.title").value("Desenvolvedor Backend Pleno"))
 				.andExpect(jsonPath("$.description").value("Arquitetura e APIs."))
-				.andExpect(jsonPath("$.area").value("Engenharia de Software"))
+				.andExpect(jsonPath("$.area").value("FULLSTACK"))
 				.andExpect(jsonPath("$.location").doesNotExist())
 				.andExpect(jsonPath("$.workModel").value("REMOTE"))
 				.andExpect(jsonPath("$.level").value("MID"))
@@ -249,7 +249,7 @@ class JobLifecycleTests {
 	private String validJob() {
 		return """
 				{"title": "Estágio em Backend Java", "description": "Desenvolver APIs REST.",
-				 "area": "Desenvolvimento Backend", "location": "Garanhuns, PE", "workModel": "HYBRID",
+				 "area": "BACKEND", "location": "Garanhuns, PE", "workModel": "HYBRID",
 				 "level": "INTERNSHIP", "requiredSkillIds": ["%s", "%s"], "desiredSkillIds": ["%s"]}
 				""".formatted(java, spring, docker);
 	}

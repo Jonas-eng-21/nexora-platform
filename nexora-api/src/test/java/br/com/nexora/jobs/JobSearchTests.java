@@ -73,15 +73,15 @@ class JobSearchTests {
 		User activeCompany = createCompany("Tech Garanhuns");
 		User suspendedCompany = createCompany("Empresa Suspensa");
 
-		String openJobId = publishJob(activeCompany, "Estágio Java", "Backend", "Garanhuns, PE",
+		String openJobId = publishJob(activeCompany, "Estágio Java", "BACKEND", "Garanhuns, PE",
 				"HYBRID", "INTERNSHIP", "OPEN", java, docker);
-		publishJob(activeCompany, "Vaga Fechada", "Backend", "Garanhuns, PE",
+		publishJob(activeCompany, "Vaga Fechada", "BACKEND", "Garanhuns, PE",
 				"REMOTE", "JUNIOR", "CLOSED", java, null);
-		String deletedJobId = publishJob(activeCompany, "Vaga Excluída", "Backend", "Garanhuns, PE",
+		String deletedJobId = publishJob(activeCompany, "Vaga Excluída", "BACKEND", "Garanhuns, PE",
 				"ON_SITE", "JUNIOR", "OPEN", java, null);
 		as(activeCompany, delete(JOBS + "/" + deletedJobId)).andExpect(status().isNoContent());
 
-		publishJob(suspendedCompany, "Vaga de Suspensa", "Backend", "Recife, PE",
+		publishJob(suspendedCompany, "Vaga de Suspensa", "BACKEND", "Recife, PE",
 				"REMOTE", "JUNIOR", "OPEN", java, null);
 		// flush antes do clear: sem ele, a exclusão lógica ainda pendente na memória seria descartada.
 		entityManager.flush();
@@ -102,9 +102,9 @@ class JobSearchTests {
 		User student = createUser(UserRole.STUDENT);
 		User company = createCompany("Agreste Digital");
 
-		String backendId = publishJob(company, "Estágio Backend Java", "Desenvolvimento Backend", "Garanhuns, PE",
+		String backendId = publishJob(company, "Estágio Backend Java", "BACKEND", "Garanhuns, PE",
 				"HYBRID", "INTERNSHIP", "OPEN", java, docker);
-		String dataId = publishJob(company, "Analista de Dados Júnior", "Ciência de Dados", "Recife, PE",
+		String dataId = publishJob(company, "Analista de Dados Júnior", "DATA", "Recife, PE",
 				"REMOTE", "JUNIOR", "OPEN", python, null);
 
 		as(student, get(JOBS).param("search", "java"))
@@ -112,7 +112,7 @@ class JobSearchTests {
 				.andExpect(jsonPath("$.content.length()").value(1))
 				.andExpect(jsonPath("$.content[0].id").value(backendId));
 
-		as(student, get(JOBS).param("area", "ciência de dados"))
+		as(student, get(JOBS).param("area", "DATA"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.content.length()").value(1))
 				.andExpect(jsonPath("$.content[0].id").value(dataId));
@@ -144,7 +144,7 @@ class JobSearchTests {
 		User company = createCompany("Tech Garanhuns");
 		User admin = createUser(UserRole.ADMIN);
 
-		String jobId = publishJob(company, "Estágio Java", "Backend", "Garanhuns, PE",
+		String jobId = publishJob(company, "Estágio Java", "BACKEND", "Garanhuns, PE",
 				"HYBRID", "INTERNSHIP", "OPEN", java, docker);
 
 		as(student, get(JOBS + "/" + jobId))

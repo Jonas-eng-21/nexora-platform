@@ -211,7 +211,7 @@ class JobProtectionTests {
 	private String jobPayload(String title) {
 		UUID java = jdbcTemplate.queryForObject("SELECT id FROM skills WHERE normalized_name = 'java'", UUID.class);
 		return """
-				{"title": "%s", "description": "Desenvolver APIs REST.", "area": "Desenvolvimento Backend",
+				{"title": "%s", "description": "Desenvolver APIs REST.", "area": "BACKEND",
 				 "workModel": "HYBRID", "level": "INTERNSHIP", "requiredSkillIds": ["%s"]}
 				""".formatted(title, java);
 	}
