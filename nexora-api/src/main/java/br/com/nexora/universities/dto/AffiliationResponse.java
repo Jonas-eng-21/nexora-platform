@@ -8,11 +8,12 @@ import br.com.nexora.universities.entity.UniversityAffiliation;
 
 /** Visão do estudante sobre um pedido de vínculo. */
 public record AffiliationResponse(UUID id, UniversitySummaryResponse university, AffiliationStatus status,
-		Instant requestedAt, Instant decidedAt, String decisionReason) {
+		Instant requestedAt, Instant decidedAt, String decisionReason, Instant revokedAt, String revocationReason) {
 
 	public static AffiliationResponse from(UniversityAffiliation affiliation) {
 		return new AffiliationResponse(affiliation.getId(),
 				UniversitySummaryResponse.from(affiliation.getUniversity()), affiliation.getStatus(),
-				affiliation.getRequestedAt(), affiliation.getDecidedAt(), affiliation.getDecisionReason());
+				affiliation.getRequestedAt(), affiliation.getDecidedAt(), affiliation.getDecisionReason(),
+				affiliation.getRevokedAt(), affiliation.getRevocationReason());
 	}
 }

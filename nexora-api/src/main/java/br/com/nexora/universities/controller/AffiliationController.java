@@ -23,6 +23,7 @@ import br.com.nexora.universities.dto.AffiliationResponse;
 import br.com.nexora.universities.dto.ReceivedAffiliationResponse;
 import br.com.nexora.universities.dto.RejectAffiliationRequest;
 import br.com.nexora.universities.dto.RequestAffiliationRequest;
+import br.com.nexora.universities.dto.RevokeAffiliationRequest;
 import br.com.nexora.universities.entity.AffiliationStatus;
 import br.com.nexora.universities.service.AffiliationDecisionService;
 import br.com.nexora.universities.service.AffiliationService;
@@ -91,6 +92,17 @@ public class AffiliationController {
 			@PathVariable UUID affiliationId, @Valid @RequestBody RejectAffiliationRequest request) {
 		return affiliationDecisionService.decideAsUniversity(principal.id(), affiliationId,
 				AffiliationStatus.REJECTED, request.reason());
+	}
+
+	@PostMapping("/{affiliationId}/revoke")
+	@PreAuthorize("hasRole('UNIVERSITY')")
+	@Operation(summary = "Revogar um vínculo aprovado da própria universidade",
+			description = "Exige motivo. Só vínculos APPROVED: caso contrário, 409 AFFILIATION_NOT_APPROVED. "
+					+ "O registro é mantido no histórico com autor, data e motivo.")
+	public ReceivedAffiliationResponse revoke(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@PathVariable UUID affiliationId, @Valid @RequestBody RevokeAffiliationRequest request) {
+		return affiliationDecisionService.revokeAsUniversity(principal.id(), affiliationId, request.reason());
 	}
 
 	@GetMapping("/me")
