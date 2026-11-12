@@ -22,7 +22,8 @@ import br.com.nexora.jobs.entity.JobLevel;
 import br.com.nexora.jobs.entity.JobSkill;
 import br.com.nexora.jobs.entity.JobStatus;
 import br.com.nexora.jobs.entity.SkillRequirement;
-import br.com.nexora.jobs.entity.WorkModel;
+import br.com.nexora.shared.domain.ProfessionalArea;
+import br.com.nexora.shared.domain.WorkModel;
 import br.com.nexora.jobs.repository.JobRepository;
 import br.com.nexora.shared.exception.ApiException;
 import br.com.nexora.shared.security.AuthenticatedUser;
@@ -54,14 +55,13 @@ public class JobService {
 
 	/** Lista apenas vagas OPEN, não excluídas e pertencentes a empresas com conta ACTIVE. */
 	@Transactional(readOnly = true)
-	public Page<JobResponse> searchOpen(String search, String area, String location, WorkModel workModel,
+	public Page<JobResponse> searchOpen(String search, ProfessionalArea area, String location, WorkModel workModel,
 			JobLevel level, UUID skillId, Pageable pageable) {
 		String normSearch = normalizeFilter(search);
-		String normArea = normalizeFilter(area);
 		String normLocation = normalizeFilter(location);
 		Page<Job> page = skillId == null
-				? jobRepository.searchOpen(normSearch, normArea, normLocation, workModel, level, pageable)
-				: jobRepository.searchOpenBySkill(normSearch, normArea, normLocation, workModel, level, skillId,
+				? jobRepository.searchOpen(normSearch, area, normLocation, workModel, level, pageable)
+				: jobRepository.searchOpenBySkill(normSearch, area, normLocation, workModel, level, skillId,
 						pageable);
 		return page.map(JobResponse::from);
 	}

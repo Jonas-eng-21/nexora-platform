@@ -1,4 +1,4 @@
-package br.com.nexora.jobs.entity;
+package br.com.nexora.shared.domain;
 
 /** Modelo de trabalho da vaga, também usado pelo matching (modalidade/localização). */
 public enum WorkModel {
