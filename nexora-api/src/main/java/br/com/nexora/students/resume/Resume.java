@@ -2,6 +2,9 @@ package br.com.nexora.students.resume;
 
 import java.util.List;
 
+import br.com.nexora.shared.domain.ProfessionalArea;
+import br.com.nexora.shared.domain.WorkModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -23,8 +26,14 @@ public record Resume(
 		@Size(max = 20) List<@Valid @NotNull Project> projects,
 		@Size(max = 30) List<@Valid @NotNull Course> courses,
 		@Size(max = 30) List<@NotBlank @Size(max = 80) String> softSkills,
+		@Schema(description = "Interesses em texto livre. Descritivos: não entram no cálculo do matching.")
 		@Size(max = 30) List<@NotBlank @Size(max = 80) String> interests,
-		@Valid Links links) {
+		@Valid Links links,
+		@Schema(description = "Áreas de interesse, do catálogo fixo (GET /api/v1/areas). "
+				+ "O matching compara com a área da vaga.")
+		@Size(max = 16) List<@NotNull ProfessionalArea> interestAreas,
+		@Schema(description = "Modelos de trabalho aceitos. Lista vazia significa sem preferência.")
+		@Size(max = 3) List<@NotNull WorkModel> preferredWorkModels) {
 
 	private static final String URL = "^https?://\\S+$";
 	private static final String URL_MESSAGE = "deve ser uma URL http(s)";
@@ -40,10 +49,14 @@ public record Resume(
 		softSkills = softSkills == null ? List.of() : List.copyOf(softSkills);
 		interests = interests == null ? List.of() : List.copyOf(interests);
 		links = links == null ? new Links(null, null, null) : links;
+		// Campos acrescentados depois: currículos e snapshots gravados sem eles continuam válidos (lista vazia).
+		interestAreas = interestAreas == null ? List.of() : interestAreas.stream().distinct().toList();
+		preferredWorkModels = preferredWorkModels == null ? List.of()
+				: preferredWorkModels.stream().distinct().toList();
 	}
 
 	public static Resume empty() {
-		return new Resume(null, null, null, null, null, null, null);
+		return new Resume(null, null, null, null, null, null, null, null, null);
 	}
 
 	public record Education(
