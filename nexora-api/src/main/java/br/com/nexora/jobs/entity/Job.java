@@ -27,7 +27,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** Vaga de uma empresa. A empresa dona é fixada na criação e nunca muda. */
+/** Vaga de uma empresa. A empresa dona é fixada na criação e nunca muda; a exclusão é sempre lógica. */
 @Entity
 @Table(name = "jobs")
 @Getter
@@ -78,6 +78,9 @@ public class Job {
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
 
+	@Column(name = "deleted_at")
+	private Instant deletedAt;
+
 	public Job(Company company, JobStatus status) {
 		this.company = company;
 		this.status = status;
@@ -96,9 +99,18 @@ public class Job {
 		this.level = level;
 	}
 
+	public void changeStatus(JobStatus status) {
+		this.status = status;
+	}
+
 	public void replaceSkills(Collection<JobSkill> newSkills) {
 		skills.clear();
 		skills.addAll(newSkills);
 	}
-}
 
+	/** Exclusão lógica: encerra a vaga e registra a data sem apagar a linha nem candidaturas vinculadas. */
+	public void markDeleted() {
+		this.status = JobStatus.CLOSED;
+		this.deletedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+	}
+}
