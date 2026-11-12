@@ -83,6 +83,8 @@ class JobSearchTests {
 
 		publishJob(suspendedCompany, "Vaga de Suspensa", "Backend", "Recife, PE",
 				"REMOTE", "JUNIOR", "OPEN", java, null);
+		// flush antes do clear: sem ele, a exclusão lógica ainda pendente na memória seria descartada.
+		entityManager.flush();
 		jdbcTemplate.update("UPDATE users SET status = 'SUSPENDED' WHERE id = ?", suspendedCompany.getId());
 		entityManager.clear();
 
