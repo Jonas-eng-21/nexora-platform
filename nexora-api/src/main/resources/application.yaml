@@ -6,6 +6,10 @@ spring:
     hibernate:
       ddl-auto: validate   # esquema controlado pelo Flyway
     open-in-view: false
+    properties:
+      hibernate:
+        # Carrega coleções e associações preguiçosas em lotes, evitando uma consulta por linha (N+1) nas listagens.
+        default_batch_fetch_size: 50
   flyway:
     enabled: true
 
