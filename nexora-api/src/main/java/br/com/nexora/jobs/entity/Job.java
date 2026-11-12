@@ -10,6 +10,8 @@ import java.util.UUID;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import br.com.nexora.companies.entity.Company;
+import br.com.nexora.shared.domain.ProfessionalArea;
+import br.com.nexora.shared.domain.WorkModel;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -48,8 +50,10 @@ public class Job {
 	@Column(nullable = false, length = 5000)
 	private String description;
 
-	@Column(nullable = false, length = 100)
-	private String area;
+	// Valor do catálogo fixo de áreas: é o que o matching compara com as áreas de interesse do estudante.
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 40)
+	private ProfessionalArea area;
 
 	@Column(length = 150)
 	private String location;
@@ -89,11 +93,11 @@ public class Job {
 	}
 
 	/** Substituição integral dos dados descritivos: campo opcional ausente ou em branco é gravado como nulo. */
-	public void updateDetails(String title, String description, String area, String location, WorkModel workModel,
+	public void updateDetails(String title, String description, ProfessionalArea area, String location, WorkModel workModel,
 			JobLevel level) {
 		this.title = title.strip();
 		this.description = description.strip();
-		this.area = area.strip();
+		this.area = area;
 		this.location = location == null || location.isBlank() ? null : location.strip();
 		this.workModel = workModel;
 		this.level = level;

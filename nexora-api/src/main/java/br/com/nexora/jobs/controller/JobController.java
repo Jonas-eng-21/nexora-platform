@@ -21,7 +21,8 @@ import br.com.nexora.jobs.dto.CreateJobRequest;
 import br.com.nexora.jobs.dto.JobResponse;
 import br.com.nexora.jobs.entity.JobLevel;
 import br.com.nexora.jobs.entity.JobStatus;
-import br.com.nexora.jobs.entity.WorkModel;
+import br.com.nexora.shared.domain.ProfessionalArea;
+import br.com.nexora.shared.domain.WorkModel;
 import br.com.nexora.jobs.service.JobService;
 import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.security.AuthenticatedUser;
@@ -49,7 +50,7 @@ public class JobController {
 					+ "Permite filtrar por termo livre (search), área, localização, modelo de trabalho, nível e competência.")
 	public PageResponse<JobResponse> searchOpen(
 			@RequestParam(required = false) String search,
-			@RequestParam(required = false) String area,
+			@RequestParam(required = false) ProfessionalArea area,
 			@RequestParam(required = false) String location,
 			@RequestParam(required = false) WorkModel workModel,
 			@RequestParam(required = false) JobLevel level,

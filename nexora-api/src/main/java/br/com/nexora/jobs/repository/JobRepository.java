@@ -12,7 +12,8 @@ import org.springframework.data.repository.query.Param;
 import br.com.nexora.jobs.entity.Job;
 import br.com.nexora.jobs.entity.JobLevel;
 import br.com.nexora.jobs.entity.JobStatus;
-import br.com.nexora.jobs.entity.WorkModel;
+import br.com.nexora.shared.domain.ProfessionalArea;
+import br.com.nexora.shared.domain.WorkModel;
 
 public interface JobRepository extends JpaRepository<Job, UUID> {
 
@@ -53,14 +54,13 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
 			  )
 			  AND (:search = '' OR LOWER(j.title) LIKE CONCAT('%', :search, '%')
 			       OR LOWER(j.description) LIKE CONCAT('%', :search, '%')
-			       OR LOWER(j.area) LIKE CONCAT('%', :search, '%')
 			       OR LOWER(j.company.name) LIKE CONCAT('%', :search, '%'))
-			  AND (:area = '' OR LOWER(j.area) LIKE CONCAT('%', :area, '%'))
+			  AND (:area IS NULL OR j.area = :area)
 			  AND (:location = '' OR LOWER(COALESCE(j.location, '')) LIKE CONCAT('%', :location, '%'))
 			  AND (:workModel IS NULL OR j.workModel = :workModel)
 			  AND (:level IS NULL OR j.level = :level)
 			""")
-	Page<Job> searchOpen(@Param("search") String search, @Param("area") String area,
+	Page<Job> searchOpen(@Param("search") String search, @Param("area") ProfessionalArea area,
 			@Param("location") String location, @Param("workModel") WorkModel workModel,
 			@Param("level") JobLevel level, Pageable pageable);
 
@@ -75,15 +75,14 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
 			  )
 			  AND (:search = '' OR LOWER(j.title) LIKE CONCAT('%', :search, '%')
 			       OR LOWER(j.description) LIKE CONCAT('%', :search, '%')
-			       OR LOWER(j.area) LIKE CONCAT('%', :search, '%')
 			       OR LOWER(j.company.name) LIKE CONCAT('%', :search, '%'))
-			  AND (:area = '' OR LOWER(j.area) LIKE CONCAT('%', :area, '%'))
+			  AND (:area IS NULL OR j.area = :area)
 			  AND (:location = '' OR LOWER(COALESCE(j.location, '')) LIKE CONCAT('%', :location, '%'))
 			  AND (:workModel IS NULL OR j.workModel = :workModel)
 			  AND (:level IS NULL OR j.level = :level)
 			  AND EXISTS (SELECT 1 FROM j.skills js WHERE js.skill.id = :skillId)
 			""")
-	Page<Job> searchOpenBySkill(@Param("search") String search, @Param("area") String area,
+	Page<Job> searchOpenBySkill(@Param("search") String search, @Param("area") ProfessionalArea area,
 			@Param("location") String location, @Param("workModel") WorkModel workModel,
 			@Param("level") JobLevel level, @Param("skillId") UUID skillId, Pageable pageable);
 }

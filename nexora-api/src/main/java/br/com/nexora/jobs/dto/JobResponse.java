@@ -10,13 +10,14 @@ import br.com.nexora.jobs.entity.JobLevel;
 import br.com.nexora.jobs.entity.JobSkill;
 import br.com.nexora.jobs.entity.JobStatus;
 import br.com.nexora.jobs.entity.SkillRequirement;
-import br.com.nexora.jobs.entity.WorkModel;
+import br.com.nexora.shared.domain.ProfessionalArea;
+import br.com.nexora.shared.domain.WorkModel;
 import br.com.nexora.skills.dto.SkillResponse;
 import br.com.nexora.skills.entity.Skill;
 
 /** Montado dentro da transação, pois empresa e competências são carregadas sob demanda. */
 public record JobResponse(UUID id, UUID companyId, String companyName, String title, String description,
-		String area, String location, WorkModel workModel, JobLevel level, JobStatus status,
+		ProfessionalArea area, String location, WorkModel workModel, JobLevel level, JobStatus status,
 		List<SkillResponse> requiredSkills, List<SkillResponse> desiredSkills, Instant createdAt,
 		Instant updatedAt) {
 
