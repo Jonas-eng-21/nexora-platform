@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.com.nexora.jobs.dto.CreateJobRequest;
 import br.com.nexora.jobs.dto.JobResponse;
+import br.com.nexora.jobs.entity.JobLevel;
 import br.com.nexora.jobs.entity.JobStatus;
+import br.com.nexora.jobs.entity.WorkModel;
 import br.com.nexora.jobs.service.JobService;
 import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.security.AuthenticatedUser;
@@ -39,6 +41,34 @@ public class JobController {
 
 	public JobController(JobService jobService) {
 		this.jobService = jobService;
+	}
+
+	@GetMapping
+	@Operation(summary = "Pesquisar vagas abertas de empresas ativas",
+			description = "Oculta vagas encerradas, excluídas logicamente ou de empresas suspensas. "
+					+ "Permite filtrar por termo livre (search), área, localização, modelo de trabalho, nível e competência.")
+	public PageResponse<JobResponse> searchOpen(
+			@RequestParam(required = false) String search,
+			@RequestParam(required = false) String area,
+			@RequestParam(required = false) String location,
+			@RequestParam(required = false) WorkModel workModel,
+			@RequestParam(required = false) JobLevel level,
+			@RequestParam(required = false) UUID skillId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
+		return PageResponse.from(
+				jobService.searchOpen(search, area, location, workModel, level, skillId,
+						PageResponse.pageable(page, size, NEWEST_FIRST)),
+				response -> response);
+	}
+
+	@GetMapping("/{jobId}")
+	@Operation(summary = "Consultar o detalhe de uma vaga",
+			description = "Vagas excluídas logicamente retornam 404 JOB_NOT_FOUND. Vagas encerradas ou de empresa "
+					+ "suspensa só são visíveis para a própria empresa dona e para o administrador.")
+	public JobResponse getDetail(@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@PathVariable UUID jobId) {
+		return jobService.getDetail(principal, jobId);
 	}
 
 	@PostMapping
