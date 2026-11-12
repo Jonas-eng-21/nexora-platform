@@ -23,6 +23,16 @@ public interface UniversityAffiliationRepository extends JpaRepository<Universit
 	@EntityGraph(attributePaths = "university")
 	List<UniversityAffiliation> findByStudentIdOrderByRequestedAtDesc(UUID studentId);
 
+	/** Regra de elegibilidade acadêmica: vínculo APPROVED com universidade de conta ACTIVE. */
+	@Query("""
+			select count(a) > 0 from UniversityAffiliation a
+			where a.student.id = :studentId
+			  and a.status = br.com.nexora.universities.entity.AffiliationStatus.APPROVED
+			  and exists (select 1 from User u where u.id = a.university.userId
+			              and u.status = br.com.nexora.users.entity.AccountStatus.ACTIVE)
+			""")
+	boolean existsApprovedWithActiveUniversity(@Param("studentId") UUID studentId);
+
 	/** Bloqueia a linha até o fim da transação, para que duas decisões simultâneas não se sobreponham. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select a from UniversityAffiliation a where a.id = :id")

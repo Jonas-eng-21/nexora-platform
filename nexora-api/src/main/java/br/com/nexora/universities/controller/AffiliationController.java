@@ -20,6 +20,7 @@ import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.security.AuthenticatedUser;
 import br.com.nexora.universities.dto.AffiliationDecisionRequest;
 import br.com.nexora.universities.dto.AffiliationResponse;
+import br.com.nexora.universities.dto.EligibilityResponse;
 import br.com.nexora.universities.dto.ReceivedAffiliationResponse;
 import br.com.nexora.universities.dto.RejectAffiliationRequest;
 import br.com.nexora.universities.dto.RequestAffiliationRequest;
@@ -103,6 +104,16 @@ public class AffiliationController {
 			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
 			@PathVariable UUID affiliationId, @Valid @RequestBody RevokeAffiliationRequest request) {
 		return affiliationDecisionService.revokeAsUniversity(principal.id(), affiliationId, request.reason());
+	}
+
+	@GetMapping("/me/eligibility")
+	@PreAuthorize("hasRole('STUDENT')")
+	@Operation(summary = "Consultar a própria situação de validação acadêmica",
+			description = "Elegível quando há vínculo aprovado e vigente com universidade ativa. "
+					+ "É a mesma regra aplicada às candidaturas.")
+	public EligibilityResponse getOwnEligibility(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal) {
+		return new EligibilityResponse(affiliationService.isOwnEligible(principal.id()));
 	}
 
 	@GetMapping("/me")
