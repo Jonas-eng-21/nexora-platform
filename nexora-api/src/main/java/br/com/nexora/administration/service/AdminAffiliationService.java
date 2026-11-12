@@ -34,6 +34,15 @@ public class AdminAffiliationService {
 	}
 
 	@Transactional
+	public ReceivedAffiliationResponse revoke(UUID adminId, UUID affiliationId, String reason) {
+		ReceivedAffiliationResponse response = affiliationDecisionService.revokeAsAdmin(adminId, affiliationId,
+				reason);
+		auditLogService.record(adminId, AdminAction.AFFILIATION_REVOKED, AuditTargetType.AFFILIATION, affiliationId,
+				reason);
+		return response;
+	}
+
+	@Transactional
 	public ReceivedAffiliationResponse reject(UUID adminId, UUID affiliationId, String reason) {
 		ReceivedAffiliationResponse response = affiliationDecisionService.decideAsAdmin(adminId, affiliationId,
 				AffiliationStatus.REJECTED, reason);

@@ -60,6 +60,14 @@ public class AdminAffiliationController {
 		return adminAffiliationService.approve(admin.id(), affiliationId, request.reason());
 	}
 
+	@PostMapping("/{affiliationId}/revoke")
+	@Operation(summary = "Intervir revogando um vínculo aprovado", description = "Exige motivo. Ação auditada.")
+	public ReceivedAffiliationResponse revoke(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser admin,
+			@PathVariable UUID affiliationId, @Valid @RequestBody AdminActionRequest request) {
+		return adminAffiliationService.revoke(admin.id(), affiliationId, request.reason());
+	}
+
 	@PostMapping("/{affiliationId}/reject")
 	@Operation(summary = "Intervir rejeitando um pedido de vínculo", description = "Exige motivo. Ação auditada.")
 	public ReceivedAffiliationResponse reject(
