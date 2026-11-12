@@ -145,6 +145,21 @@ public class JobService {
 		getActiveJobById(jobId).markDeleted();
 	}
 
+	/**
+	 * Ponto único da regra "esta vaga aceita candidatura": existe, não foi excluída, está OPEN e pertence a uma
+	 * empresa com conta ACTIVE. O módulo de candidaturas deve usar este método, nunca repetir a regra.
+	 *
+	 * @throws ApiException 404 JOB_NOT_FOUND se a vaga não existe ou foi excluída logicamente;
+	 *                      409 JOB_NOT_ACCEPTING_APPLICATIONS se está encerrada ou a empresa não está ativa
+	 */
+	@Transactional(readOnly = true)
+	public Job requireAcceptingApplications(UUID jobId) {
+		getActiveJobById(jobId);
+		return jobRepository.findOpenFromActiveCompanyById(jobId)
+				.orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "JOB_NOT_ACCEPTING_APPLICATIONS",
+						"Esta vaga não está recebendo candidaturas."));
+	}
+
 	private Job getOwnedActiveJob(UUID userId, UUID jobId) {
 		Company company = companyProfileService.getByUserId(userId);
 		return jobRepository.findByIdAndCompanyIdAndDeletedAtIsNull(jobId, company.getId())
