@@ -9,7 +9,8 @@ import br.com.nexora.universities.entity.UniversityAffiliation;
 
 /** Visão de quem analisa o pedido (universidade destinatária ou administrador). */
 public record ReceivedAffiliationResponse(UUID id, StudentSummary student, UniversitySummaryResponse university,
-		AffiliationStatus status, Instant requestedAt, Instant decidedAt, String decisionReason) {
+		AffiliationStatus status, Instant requestedAt, Instant decidedAt, String decisionReason, Instant revokedAt,
+		String revocationReason) {
 
 	/** Apenas o necessário para a universidade reconhecer o estudante: sem e-mail nem currículo. */
 	public record StudentSummary(UUID id, String fullName, String course, String institution) {
@@ -23,6 +24,7 @@ public record ReceivedAffiliationResponse(UUID id, StudentSummary student, Unive
 	public static ReceivedAffiliationResponse from(UniversityAffiliation affiliation) {
 		return new ReceivedAffiliationResponse(affiliation.getId(), StudentSummary.from(affiliation.getStudent()),
 				UniversitySummaryResponse.from(affiliation.getUniversity()), affiliation.getStatus(),
-				affiliation.getRequestedAt(), affiliation.getDecidedAt(), affiliation.getDecisionReason());
+				affiliation.getRequestedAt(), affiliation.getDecidedAt(), affiliation.getDecisionReason(),
+				affiliation.getRevokedAt(), affiliation.getRevocationReason());
 	}
 }

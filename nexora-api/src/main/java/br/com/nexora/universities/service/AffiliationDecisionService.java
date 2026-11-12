@@ -61,6 +61,31 @@ public class AffiliationDecisionService {
 		return decide(lock(affiliationId), decision, adminId, reason);
 	}
 
+	/** Revogação pela universidade responsável. Vínculo de outra instituição responde como inexistente. */
+	@Transactional
+	public ReceivedAffiliationResponse revokeAsUniversity(UUID universityUserId, UUID affiliationId, String reason) {
+		UniversityAffiliation affiliation = lock(affiliationId);
+		if (!affiliation.getUniversity().getUserId().equals(universityUserId)) {
+			throw notFound();
+		}
+		return revoke(affiliation, universityUserId, reason);
+	}
+
+	/** Revogação pelo administrador sobre qualquer vínculo. A auditoria é responsabilidade de quem chama. */
+	@Transactional
+	public ReceivedAffiliationResponse revokeAsAdmin(UUID adminId, UUID affiliationId, String reason) {
+		return revoke(lock(affiliationId), adminId, reason);
+	}
+
+	private ReceivedAffiliationResponse revoke(UniversityAffiliation affiliation, UUID revokedBy, String reason) {
+		if (affiliation.getStatus() != AffiliationStatus.APPROVED) {
+			throw new ApiException(HttpStatus.CONFLICT, "AFFILIATION_NOT_APPROVED",
+					"Apenas vínculos aprovados podem ser revogados.");
+		}
+		affiliation.recordRevocation(revokedBy, reason);
+		return ReceivedAffiliationResponse.from(affiliation);
+	}
+
 	private ReceivedAffiliationResponse decide(UniversityAffiliation affiliation, AffiliationStatus decision,
 			UUID decidedBy, String reason) {
 		if (decision != AffiliationStatus.APPROVED && decision != AffiliationStatus.REJECTED) {

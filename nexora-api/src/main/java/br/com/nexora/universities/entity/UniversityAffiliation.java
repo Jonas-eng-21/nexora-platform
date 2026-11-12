@@ -58,6 +58,15 @@ public class UniversityAffiliation {
 	@Column(name = "decision_reason", length = 500)
 	private String decisionReason;
 
+	@Column(name = "revoked_by")
+	private UUID revokedBy;
+
+	@Column(name = "revoked_at")
+	private Instant revokedAt;
+
+	@Column(name = "revocation_reason", length = 500)
+	private String revocationReason;
+
 	@UpdateTimestamp
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
@@ -77,5 +86,13 @@ public class UniversityAffiliation {
 		this.decidedBy = decidedBy;
 		this.decidedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
 		this.decisionReason = reason == null || reason.isBlank() ? null : reason.strip();
+	}
+
+	/** Registra a revogação sem tocar nos dados da aprovação. Quem chama garante que o vínculo está APPROVED. */
+	public void recordRevocation(UUID revokedBy, String reason) {
+		this.status = AffiliationStatus.REVOKED;
+		this.revokedBy = revokedBy;
+		this.revokedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+		this.revocationReason = reason.strip();
 	}
 }
