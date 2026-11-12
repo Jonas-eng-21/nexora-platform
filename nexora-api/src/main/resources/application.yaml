@@ -21,6 +21,14 @@ nexora:
   admin:
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+  matching:
+    # Pesos dos critérios do score, em pontos percentuais (devem somar 100).
+    # São hipóteses de implementação, não valores validados cientificamente.
+    weights:
+      required-skills: 45
+      desired-skills: 20
+      interests: 20
+      work-model-and-location: 15
   security:
     jwt:
       # Segredo HMAC (HS256), mínimo de 32 caracteres. Obrigatório: sem valor padrão de propósito.

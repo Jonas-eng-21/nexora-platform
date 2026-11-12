@@ -160,6 +160,15 @@ public class JobService {
 						"Esta vaga não está recebendo candidaturas."));
 	}
 
+	/**
+	 * Vaga como o público a enxerga: aberta, não excluída e de empresa ativa; caso contrário, 404 JOB_NOT_FOUND.
+	 * Para outros módulos que precisam da entidade (ex.: matching), dentro da transação de quem chama.
+	 */
+	@Transactional(readOnly = true)
+	public Job getOpenJob(UUID jobId) {
+		return jobRepository.findOpenFromActiveCompanyById(jobId).orElseThrow(JobService::notFound);
+	}
+
 	private Job getOwnedActiveJob(UUID userId, UUID jobId) {
 		Company company = companyProfileService.getByUserId(userId);
 		return jobRepository.findByIdAndCompanyIdAndDeletedAtIsNull(jobId, company.getId())
