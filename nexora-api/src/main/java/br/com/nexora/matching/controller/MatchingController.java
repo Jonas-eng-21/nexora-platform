@@ -7,10 +7,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.nexora.matching.dto.JobMatchResponse;
+import br.com.nexora.matching.dto.RecommendedJobResponse;
 import br.com.nexora.matching.service.MatchingService;
+import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,6 +28,20 @@ public class MatchingController {
 
 	public MatchingController(MatchingService matchingService) {
 		this.matchingService = matchingService;
+	}
+
+	@GetMapping("/jobs")
+	@PreAuthorize("hasRole('STUDENT')")
+	@Operation(summary = "Listar vagas recomendadas, da mais para a menos compatível",
+			description = "Considera apenas vagas abertas de empresas ativas e o currículo-base do próprio estudante. "
+					+ "Cada item traz a vaga e a compatibilidade com pontuação por critério e justificativa. "
+					+ "No empate de score, a vaga mais recente vem primeiro. São avaliadas as 500 vagas abertas "
+					+ "mais recentes. 404 STUDENT_PROFILE_NOT_FOUND sem perfil.")
+	public PageResponse<RecommendedJobResponse> recommendJobs(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
+		return matchingService.recommendJobs(principal.id(), page, size);
 	}
 
 	@GetMapping("/jobs/{jobId}")

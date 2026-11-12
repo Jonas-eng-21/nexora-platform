@@ -1,10 +1,12 @@
 package br.com.nexora.jobs.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,6 +35,20 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
 			  )
 			""")
 	Optional<Job> findOpenFromActiveCompanyById(@Param("id") UUID id);
+
+	/** Vagas abertas de empresas ativas, sem filtros, já com a empresa carregada. Usada pelas recomendações. */
+	@EntityGraph(attributePaths = "company")
+	@Query("""
+			SELECT j FROM Job j
+			WHERE j.deletedAt IS NULL
+			  AND j.status = br.com.nexora.jobs.entity.JobStatus.OPEN
+			  AND EXISTS (
+			      SELECT 1 FROM User u
+			      WHERE u.id = j.company.userId
+			        AND u.status = br.com.nexora.users.entity.AccountStatus.ACTIVE
+			  )
+			""")
+	List<Job> findOpenFromActiveCompanies(Pageable pageable);
 
 	@Query("""
 			SELECT j FROM Job j

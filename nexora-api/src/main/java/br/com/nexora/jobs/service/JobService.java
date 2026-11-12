@@ -8,7 +8,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -167,6 +169,16 @@ public class JobService {
 	@Transactional(readOnly = true)
 	public Job getOpenJob(UUID jobId) {
 		return jobRepository.findOpenFromActiveCompanyById(jobId).orElseThrow(JobService::notFound);
+	}
+
+	/**
+	 * As vagas abertas de empresas ativas mais recentes, até o limite informado, como entidades.
+	 * Para outros módulos (ex.: recomendações), dentro da transação de quem chama.
+	 */
+	@Transactional(readOnly = true)
+	public List<Job> listOpenJobs(int limit) {
+		return jobRepository.findOpenFromActiveCompanies(PageRequest.of(0, limit,
+				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id"))));
 	}
 
 	private Job getOwnedActiveJob(UUID userId, UUID jobId) {
