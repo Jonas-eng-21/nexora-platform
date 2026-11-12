@@ -26,14 +26,16 @@ public class AffiliationService {
 	private final UniversityRepository universityRepository;
 	private final UserRepository userRepository;
 	private final StudentProfileService studentProfileService;
+	private final AcademicEligibilityService academicEligibilityService;
 
 	public AffiliationService(UniversityAffiliationRepository affiliationRepository,
 			UniversityRepository universityRepository, UserRepository userRepository,
-			StudentProfileService studentProfileService) {
+			StudentProfileService studentProfileService, AcademicEligibilityService academicEligibilityService) {
 		this.affiliationRepository = affiliationRepository;
 		this.universityRepository = universityRepository;
 		this.userRepository = userRepository;
 		this.studentProfileService = studentProfileService;
+		this.academicEligibilityService = academicEligibilityService;
 	}
 
 	/**
@@ -67,6 +69,14 @@ public class AffiliationService {
 		Student student = studentProfileService.getByUserId(studentUserId);
 		return affiliationRepository.findByStudentIdOrderByRequestedAtDesc(student.getId()).stream()
 				.map(AffiliationResponse::from).toList();
+	}
+
+	/** Situação de validação acadêmica do estudante autenticado, pela regra central de elegibilidade. */
+	@Transactional(readOnly = true)
+	public boolean isOwnEligible(UUID studentUserId) {
+		return studentProfileService.findByUserId(studentUserId)
+				.map(student -> academicEligibilityService.isEligible(student.getId()))
+				.orElse(false);
 	}
 
 	private boolean isActive(University university) {

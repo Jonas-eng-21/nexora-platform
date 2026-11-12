@@ -3,6 +3,7 @@ package br.com.nexora.students.service;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,6 +35,12 @@ public class StudentProfileService {
 		return studentRepository.findByUserId(userId)
 				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "STUDENT_PROFILE_NOT_FOUND",
 						"Perfil de estudante ainda não preenchido."));
+	}
+
+	/** Para quem precisa tratar "ainda sem perfil" como um caso normal, e não como erro. */
+	@Transactional(readOnly = true)
+	public Optional<Student> findByUserId(UUID userId) {
+		return studentRepository.findByUserId(userId);
 	}
 
 	/** Cria o perfil no primeiro envio e o atualiza nos seguintes. O dono é sempre o usuário autenticado. */
