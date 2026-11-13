@@ -22,9 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 import br.com.nexora.applications.dto.ApplicationResponse;
 import br.com.nexora.applications.dto.ApplicationSummaryResponse;
 import br.com.nexora.applications.dto.CreateApplicationRequest;
+import br.com.nexora.applications.dto.JobApplicationResponse;
 import br.com.nexora.applications.entity.ApplicationStatus;
 import br.com.nexora.applications.service.ApplicationService;
 import br.com.nexora.applications.service.ApplicationService.ResumeDocument;
+import br.com.nexora.applications.service.JobApplicationService;
 import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,9 +40,12 @@ import jakarta.validation.Valid;
 public class ApplicationController {
 
 	private final ApplicationService applicationService;
+	private final JobApplicationService jobApplicationService;
 
-	public ApplicationController(ApplicationService applicationService) {
+	public ApplicationController(ApplicationService applicationService,
+			JobApplicationService jobApplicationService) {
 		this.applicationService = applicationService;
+		this.jobApplicationService = jobApplicationService;
 	}
 
 	@PostMapping(path = "/jobs/{jobId}/applications", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -60,6 +65,25 @@ public class ApplicationController {
 			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
 			@PathVariable UUID jobId, @Valid @ModelAttribute CreateApplicationRequest request) {
 		return applicationService.apply(principal.id(), jobId, request);
+	}
+
+	@GetMapping("/jobs/{jobId}/applications")
+	@PreAuthorize("hasRole('COMPANY')")
+	@Operation(summary = "Listar as candidaturas recebidas por uma vaga da própria empresa",
+			description = "Todos os status (inclusive suspensas e rejeitadas), da mais recente para a mais antiga "
+					+ "(appliedAt e id decrescentes); filtro opcional por status; página inicial 0, tamanho padrão "
+					+ "10 e máximo 50. Cada item traz o resumo autorizado do estudante (sem e-mail) e matchScore, a "
+					+ "compatibilidade ATUAL de 0 a 100 calculada com o currículo-base (nunca com o PDF), ou nulo "
+					+ "quando o currículo-base não tem competências nem áreas de interesse. Não traz o currículo "
+					+ "enviado: use GET /api/v1/applications/{id}/resume. 404 JOB_NOT_FOUND para vaga de outra "
+					+ "empresa, excluída ou inexistente.")
+	public PageResponse<JobApplicationResponse> listJobApplications(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@PathVariable UUID jobId,
+			@RequestParam(required = false) ApplicationStatus status,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		return jobApplicationService.listForOwnJob(principal.id(), jobId, status, page, size);
 	}
 
 	@GetMapping("/applications/me")

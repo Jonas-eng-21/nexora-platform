@@ -2,6 +2,7 @@ package br.com.nexora.matching.service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -133,6 +134,19 @@ public class MatchingService {
 	}
 
 	private record RankedStudent(Student student, MatchResult match) {
+	}
+
+	/**
+	 * Score atual (0 a 100) do estudante para a vaga, calculado agora com o currículo-base e as competências do
+	 * catálogo. Vazio quando o currículo-base não tem nada para comparar — nenhuma competência do catálogo e
+	 * nenhuma área de interesse —, caso em que um número só refletiria modelo de trabalho e localização.
+	 * Para quem precisa informar "nota indisponível" em vez de um número enganoso (ex.: candidaturas).
+	 */
+	public Optional<Integer> currentScore(Student student, Job job) {
+		if (student.getSkills().isEmpty() && student.getResume().interestAreas().isEmpty()) {
+			return Optional.empty();
+		}
+		return Optional.of(calculate(student, job).score());
 	}
 
 	/** Reutilizado pelas recomendações: mesma regra para qualquer par estudante–vaga. */

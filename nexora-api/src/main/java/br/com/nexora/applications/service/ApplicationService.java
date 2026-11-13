@@ -41,8 +41,11 @@ public class ApplicationService {
 	private static final String PDF_CONTENT_TYPE = "application/pdf";
 	private static final int MAX_FILENAME_LENGTH = 150;
 
-	/** Tamanho máximo de página da lista do estudante. */
+	/** Tamanho máximo de página das listas de candidaturas. */
 	static final int MAX_LIST_SIZE = 50;
+
+	/** Ordem fixa das listas de candidaturas: a mais recente primeiro; o id desempata para a ordem ser estável. */
+	static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
 
 	private final ApplicationRepository applicationRepository;
 	private final StudentProfileService studentProfileService;
@@ -173,8 +176,7 @@ public class ApplicationService {
 	@Transactional(readOnly = true)
 	public PageResponse<ApplicationSummaryResponse> listOwn(UUID studentUserId, ApplicationStatus status, int page,
 			int size) {
-		Pageable pageable = PageResponse.pageable(page, size, MAX_LIST_SIZE,
-				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+		Pageable pageable = PageResponse.pageable(page, size, MAX_LIST_SIZE, NEWEST_FIRST);
 		return PageResponse.from(applicationRepository.searchByStudentUser(studentUserId, status, pageable),
 				ApplicationSummaryResponse::from);
 	}
