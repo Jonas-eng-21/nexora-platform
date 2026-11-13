@@ -16,6 +16,8 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests \
 # ---------- Estágio 2: runtime (somente JRE 21) ----------
 FROM eclipse-temurin:21-jre AS runtime
 RUN useradd --system --uid 10001 --no-create-home nexora
+# Pasta dos PDFs de candidatura: o volume nomeado herda este dono na primeira montagem.
+RUN mkdir -p /data/resumes && chown nexora:nexora /data/resumes
 WORKDIR /app
 COPY --from=build --chown=nexora:nexora /build/app.jar app.jar
 USER nexora

@@ -57,6 +57,19 @@ public class Application {
 	@Column(name = "resume_snapshot", updatable = false)
 	private ResumeSnapshot resumeSnapshot;
 
+	/** Nome interno do PDF no armazenamento, gerado pelo servidor. Nunca exposto pela API. */
+	@Column(name = "storage_key", updatable = false, length = 100)
+	private String storageKey;
+
+	@Column(name = "original_filename", updatable = false, length = 150)
+	private String originalFilename;
+
+	@Column(name = "file_size", updatable = false)
+	private Long fileSize;
+
+	@Column(name = "content_type", updatable = false, length = 100)
+	private String contentType;
+
 	// Definida no construtor (e não por @CreationTimestamp) para já constar na resposta de criação.
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -73,8 +86,28 @@ public class Application {
 		application.resumeType = ResumeType.PLATFORM;
 		application.status = ApplicationStatus.SUBMITTED;
 		application.resumeSnapshot = ResumeSnapshot.of(student);
-		// Microssegundos: a mesma precisão que o PostgreSQL guarda, para a data não mudar ao ser relida.
-		application.createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+		application.createdAt = now();
 		return application;
+	}
+
+	/** Candidatura com um PDF próprio já gravado no armazenamento privado. Não há snapshot. */
+	public static Application withPdfResume(Student student, Job job, String storageKey, String originalFilename,
+			long fileSize, String contentType) {
+		Application application = new Application();
+		application.student = student;
+		application.job = job;
+		application.resumeType = ResumeType.PDF;
+		application.status = ApplicationStatus.SUBMITTED;
+		application.storageKey = storageKey;
+		application.originalFilename = originalFilename;
+		application.fileSize = fileSize;
+		application.contentType = contentType;
+		application.createdAt = now();
+		return application;
+	}
+
+	/** Microssegundos: a mesma precisão que o PostgreSQL guarda, para a data não mudar ao ser relida. */
+	private static Instant now() {
+		return Instant.now().truncatedTo(ChronoUnit.MICROS);
 	}
 }
