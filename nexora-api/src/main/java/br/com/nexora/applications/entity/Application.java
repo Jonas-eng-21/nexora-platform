@@ -74,6 +74,18 @@ public class Application {
 	@Column(name = "status_reason", length = 500)
 	private String statusReason;
 
+	/** Estado (SUBMITTED ou IN_REVIEW) imediatamente antes da suspensão automática; nulo se nunca suspensa. */
+	@Enumerated(EnumType.STRING)
+	@Column(name = "suspended_from_status", length = 20)
+	private ApplicationStatus suspendedFromStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "suspension_reason", length = 50)
+	private SuspensionReason suspensionReason;
+
+	@Column(name = "suspended_at")
+	private Instant suspendedAt;
+
 	// Definida no construtor (e não por @CreationTimestamp) para já constar na resposta de criação.
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
