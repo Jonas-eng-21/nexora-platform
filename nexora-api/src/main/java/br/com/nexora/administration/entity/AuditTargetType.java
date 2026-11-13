@@ -5,5 +5,6 @@ public enum AuditTargetType {
 	COMPANY,
 	UNIVERSITY,
 	AFFILIATION,
-	JOB
+	JOB,
+	APPLICATION
 }

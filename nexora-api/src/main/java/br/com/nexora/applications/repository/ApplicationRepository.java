@@ -5,15 +5,23 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import br.com.nexora.applications.entity.Application;
 import br.com.nexora.applications.entity.ApplicationStatus;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 
 public interface ApplicationRepository extends JpaRepository<Application, UUID> {
 
 	boolean existsByStudentIdAndJobId(UUID studentId, UUID jobId);
+
+	/** Bloqueia a linha até o fim da transação, para duas decisões simultâneas não se sobreporem. */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select a from Application a where a.id = :id")
+	Optional<Application> findByIdForUpdate(@Param("id") UUID id);
 
 	/**
 	 * Candidaturas do estudante dono da conta informada (não do perfil, para o cliente nunca indicar de quem

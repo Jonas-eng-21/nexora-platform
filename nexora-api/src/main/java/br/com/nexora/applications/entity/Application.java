@@ -70,6 +70,10 @@ public class Application {
 	@Column(name = "content_type", updatable = false, length = 100)
 	private String contentType;
 
+	/** Motivo informado na última mudança de andamento (obrigatório ao rejeitar); nulo se não houve. */
+	@Column(name = "status_reason", length = 500)
+	private String statusReason;
+
 	// Definida no construtor (e não por @CreationTimestamp) para já constar na resposta de criação.
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -104,6 +108,15 @@ public class Application {
 		application.contentType = contentType;
 		application.createdAt = now();
 		return application;
+	}
+
+	/**
+	 * Registra a mudança de andamento e o motivo. Quem chama garante que a transição é permitida
+	 * ({@link ApplicationStatus#canMoveTo}); o motivo já vem sem espaços nas pontas, ou nulo.
+	 */
+	public void changeStatus(ApplicationStatus newStatus, String reason) {
+		this.status = newStatus;
+		this.statusReason = reason;
 	}
 
 	/** Microssegundos: a mesma precisão que o PostgreSQL guarda, para a data não mudar ao ser relida. */

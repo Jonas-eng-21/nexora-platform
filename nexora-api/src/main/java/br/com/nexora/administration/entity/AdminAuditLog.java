@@ -45,15 +45,29 @@ public class AdminAuditLog {
 	@Column(updatable = false, length = 500)
 	private String reason;
 
+	/** Valor antes e depois da ação, para ações que mudam um estado (ex.: status de candidatura). */
+	@Column(name = "previous_value", updatable = false, length = 50)
+	private String previousValue;
+
+	@Column(name = "new_value", updatable = false, length = 50)
+	private String newValue;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
 	public AdminAuditLog(UUID adminId, AdminAction action, AuditTargetType targetType, UUID targetId, String reason) {
+		this(adminId, action, targetType, targetId, reason, null, null);
+	}
+
+	public AdminAuditLog(UUID adminId, AdminAction action, AuditTargetType targetType, UUID targetId, String reason,
+			String previousValue, String newValue) {
 		this.adminId = adminId;
 		this.action = action;
 		this.targetType = targetType;
 		this.targetId = targetId;
 		this.reason = reason;
+		this.previousValue = previousValue;
+		this.newValue = newValue;
 	}
 }
