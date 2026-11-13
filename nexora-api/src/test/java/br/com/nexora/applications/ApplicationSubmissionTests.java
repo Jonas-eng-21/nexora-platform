@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -26,7 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -44,7 +45,7 @@ import jakarta.persistence.EntityManager;
 @Transactional
 class ApplicationSubmissionTests {
 
-	private static final String PLATFORM = "{\"resumeType\": \"PLATFORM\"}";
+	private static final String PLATFORM = "PLATFORM";
 
 	@Autowired
 	private WebApplicationContext context;
@@ -245,13 +246,13 @@ class ApplicationSubmissionTests {
 	}
 
 	@Test
-	void resumeTypeIsRequiredAndOnlyPlatformIsAcceptedHere() throws Exception {
+	void resumeTypeIsRequiredAndMustBeKnown() throws Exception {
 		affiliate(student, "APPROVED");
-		as(student, applyTo(jobId, "{}"))
+		as(student, multipart("/api/v1/jobs/" + jobId + "/applications"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
 				.andExpect(jsonPath("$.errors[0].field").value("resumeType"));
-		as(student, applyTo(jobId, "{\"resumeType\": \"WORD\"}")).andExpect(status().isBadRequest());
+		as(student, applyTo(jobId, "WORD")).andExpect(status().isBadRequest());
 		assertEquals(0, applicationCount());
 	}
 
@@ -282,8 +283,8 @@ class ApplicationSubmissionTests {
 				.andExpect(jsonPath("$.code").value("ACCOUNT_SUSPENDED"));
 	}
 
-	private static MockHttpServletRequestBuilder applyTo(String job, String body) {
-		return post("/api/v1/jobs/" + job + "/applications").contentType(MediaType.APPLICATION_JSON).content(body);
+	private static AbstractMockHttpServletRequestBuilder<?> applyTo(String job, String resumeType) {
+		return multipart("/api/v1/jobs/" + job + "/applications").param("resumeType", resumeType);
 	}
 
 	private long applicationCount() {
@@ -355,7 +356,7 @@ class ApplicationSubmissionTests {
 		return owner;
 	}
 
-	private ResultActions as(User user, MockHttpServletRequestBuilder request) throws Exception {
+	private ResultActions as(User user, AbstractMockHttpServletRequestBuilder<?> request) throws Exception {
 		return mockMvc.perform(request.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenService.issue(user)));
 	}
 }
