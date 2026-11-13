@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,19 @@ public class StudentProfileService {
 	@Transactional(readOnly = true)
 	public Optional<Student> findByUserId(UUID userId) {
 		return studentRepository.findByUserId(userId);
+	}
+
+	/**
+	 * Os perfis mais recentes, até o limite, entre os ids informados e com conta ACTIVE. Como entidades, para
+	 * outros módulos (ex.: recomendações), dentro da transação de quem chama.
+	 */
+	@Transactional(readOnly = true)
+	public List<Student> listActiveByIds(Collection<UUID> studentIds, int limit) {
+		if (studentIds.isEmpty()) {
+			return List.of();
+		}
+		return studentRepository.findActiveByIdIn(studentIds, PageRequest.of(0, limit,
+				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id"))));
 	}
 
 	/** Cria o perfil no primeiro envio e o atualiza nos seguintes. O dono é sempre o usuário autenticado. */

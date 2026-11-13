@@ -33,6 +33,18 @@ public interface UniversityAffiliationRepository extends JpaRepository<Universit
 			""")
 	boolean existsApprovedWithActiveUniversity(@Param("studentId") UUID studentId);
 
+	/**
+	 * A mesma regra de elegibilidade da consulta acima, para todos os estudantes de uma vez. As duas devem
+	 * mudar juntas; os testes de elegibilidade e de recomendação de estudantes cobrem as duas.
+	 */
+	@Query("""
+			select distinct a.student.id from UniversityAffiliation a
+			where a.status = br.com.nexora.universities.entity.AffiliationStatus.APPROVED
+			  and exists (select 1 from User u where u.id = a.university.userId
+			              and u.status = br.com.nexora.users.entity.AccountStatus.ACTIVE)
+			""")
+	List<UUID> findEligibleStudentIds();
+
 	/** Bloqueia a linha até o fim da transação, para que duas decisões simultâneas não se sobreponham. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select a from UniversityAffiliation a where a.id = :id")

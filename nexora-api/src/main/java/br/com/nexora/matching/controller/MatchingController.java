@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.com.nexora.matching.dto.JobMatchResponse;
 import br.com.nexora.matching.dto.RecommendedJobResponse;
+import br.com.nexora.matching.dto.RecommendedStudentResponse;
 import br.com.nexora.matching.service.MatchingService;
 import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.security.AuthenticatedUser;
@@ -56,5 +57,23 @@ public class MatchingController {
 			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
 			@PathVariable UUID jobId) {
 		return matchingService.matchOwnProfileWithJob(principal.id(), jobId);
+	}
+
+	@GetMapping("/jobs/{jobId}/students")
+	@PreAuthorize("hasRole('COMPANY')")
+	@Operation(summary = "Listar estudantes recomendados para uma vaga da própria empresa",
+			description = "Considera apenas estudantes academicamente validados (vínculo aprovado com universidade "
+					+ "ativa) e com conta ativa, ordenados do mais para o menos compatível; no empate, o perfil mais "
+					+ "recente vem primeiro. A empresa vê nome, curso, localização, resumo, competências e áreas de "
+					+ "interesse, nunca e-mail nem o currículo completo. Cada item traz a pontuação por critério e a "
+					+ "justificativa. São avaliados os 500 perfis elegíveis mais recentes. "
+					+ "404 JOB_NOT_FOUND para vaga inexistente, excluída ou de outra empresa; "
+					+ "404 COMPANY_PROFILE_NOT_FOUND sem perfil de empresa.")
+	public PageResponse<RecommendedStudentResponse> recommendStudents(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@PathVariable UUID jobId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
+		return matchingService.recommendStudentsForOwnJob(principal.id(), jobId, page, size);
 	}
 }
