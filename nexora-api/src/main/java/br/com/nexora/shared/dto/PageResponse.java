@@ -20,6 +20,11 @@ public record PageResponse<T>(List<T> content, int page, int size, long totalEle
 
 	/** Valores fora do intervalo são ajustados em vez de rejeitados (página mínima 0, tamanho de 1 a 100). */
 	public static Pageable pageable(int page, int size, Sort sort) {
-		return PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_SIZE), sort);
+		return pageable(page, size, MAX_SIZE, sort);
+	}
+
+	/** Como {@link #pageable(int, int, Sort)}, para listas com um tamanho máximo próprio (de 1 a {@code maxSize}). */
+	public static Pageable pageable(int page, int size, int maxSize, Sort sort) {
+		return PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), maxSize), sort);
 	}
 }
