@@ -4,3 +4,6 @@ nexora:
   security:
     jwt:
       secret: test-only-jwt-secret-not-for-real-environments
+  storage:
+    # Pasta temporária dos PDFs de candidatura nos testes; os testes a esvaziam ao terminar.
+    resumes-dir: ${java.io.tmpdir}/nexora-test-resumes
