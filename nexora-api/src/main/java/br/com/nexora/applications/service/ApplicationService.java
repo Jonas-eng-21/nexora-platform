@@ -7,18 +7,24 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.UUID;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import br.com.nexora.applications.dto.ApplicationResponse;
+import br.com.nexora.applications.dto.ApplicationSummaryResponse;
 import br.com.nexora.applications.dto.CreateApplicationRequest;
 import br.com.nexora.applications.entity.Application;
+import br.com.nexora.applications.entity.ApplicationStatus;
+import br.com.nexora.applications.entity.ResumeSnapshot;
 import br.com.nexora.applications.entity.ResumeType;
 import br.com.nexora.applications.repository.ApplicationRepository;
 import br.com.nexora.jobs.entity.Job;
 import br.com.nexora.jobs.service.JobService;
+import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.exception.ApiException;
 import br.com.nexora.shared.security.AuthenticatedUser;
 import br.com.nexora.students.entity.Student;
@@ -34,6 +40,9 @@ public class ApplicationService {
 	private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(StandardCharsets.US_ASCII);
 	private static final String PDF_CONTENT_TYPE = "application/pdf";
 	private static final int MAX_FILENAME_LENGTH = 150;
+
+	/** Tamanho máximo de página da lista do estudante. */
+	static final int MAX_LIST_SIZE = 50;
 
 	private final ApplicationRepository applicationRepository;
 	private final StudentProfileService studentProfileService;
@@ -157,18 +166,33 @@ public class ApplicationService {
 				"O PDF excede o limite de 5 MiB (5.242.880 bytes).");
 	}
 
-	/** PDF de uma candidatura para o dono, a empresa da vaga ou o admin; os demais recebem 404. */
+	/**
+	 * Candidaturas do estudante autenticado, de qualquer status (inclusive suspensas e finalizadas), da mais
+	 * recente para a mais antiga; o id desempata para a ordem ser estável. A conta vem do token, nunca do cliente.
+	 */
 	@Transactional(readOnly = true)
-	public ResumeDownload downloadResume(AuthenticatedUser principal, UUID applicationId) {
+	public PageResponse<ApplicationSummaryResponse> listOwn(UUID studentUserId, ApplicationStatus status, int page,
+			int size) {
+		Pageable pageable = PageResponse.pageable(page, size, MAX_LIST_SIZE,
+				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+		return PageResponse.from(applicationRepository.searchByStudentUser(studentUserId, status, pageable),
+				ApplicationSummaryResponse::from);
+	}
+
+	/**
+	 * Currículo efetivamente enviado, para o estudante dono, a empresa da vaga ou o admin (os demais recebem 404):
+	 * o snapshot imutável (PLATFORM) ou o arquivo PDF privado.
+	 */
+	@Transactional(readOnly = true)
+	public ResumeDocument readResume(AuthenticatedUser principal, UUID applicationId) {
 		Application application = applicationRepository.findById(applicationId)
 				.filter(found -> canRead(principal, found))
 				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "APPLICATION_NOT_FOUND",
 						"Candidatura não encontrada."));
-		if (application.getResumeType() != ResumeType.PDF) {
-			throw new ApiException(HttpStatus.NOT_FOUND, "RESUME_FILE_NOT_FOUND",
-					"Esta candidatura não tem um PDF: o currículo enviado é o da plataforma.");
+		if (application.getResumeType() == ResumeType.PLATFORM) {
+			return new ResumeDocument.Snapshot(application.getResumeSnapshot());
 		}
-		return new ResumeDownload(application.getOriginalFilename(), application.getContentType(),
+		return new ResumeDocument.Pdf(application.getOriginalFilename(), application.getContentType(),
 				fileStorage.read(application.getStorageKey()));
 	}
 
@@ -181,7 +205,13 @@ public class ApplicationService {
 		};
 	}
 
-	/** O arquivo para o download, com o nome original saneado e o tipo gravado na candidatura. */
-	public record ResumeDownload(String filename, String contentType, byte[] content) {
+	/** O currículo enviado numa candidatura: ou o snapshot (JSON) ou o PDF (anexo, com o nome original saneado). */
+	public sealed interface ResumeDocument {
+
+		record Snapshot(ResumeSnapshot snapshot) implements ResumeDocument {
+		}
+
+		record Pdf(String filename, String contentType, byte[] content) implements ResumeDocument {
+		}
 	}
 }

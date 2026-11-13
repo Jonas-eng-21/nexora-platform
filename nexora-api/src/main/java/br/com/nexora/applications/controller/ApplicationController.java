@@ -14,14 +14,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.nexora.applications.dto.ApplicationResponse;
+import br.com.nexora.applications.dto.ApplicationSummaryResponse;
 import br.com.nexora.applications.dto.CreateApplicationRequest;
+import br.com.nexora.applications.entity.ApplicationStatus;
 import br.com.nexora.applications.service.ApplicationService;
-import br.com.nexora.applications.service.ApplicationService.ResumeDownload;
+import br.com.nexora.applications.service.ApplicationService.ResumeDocument;
+import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -58,21 +62,43 @@ public class ApplicationController {
 		return applicationService.apply(principal.id(), jobId, request);
 	}
 
+	@GetMapping("/applications/me")
+	@PreAuthorize("hasRole('STUDENT')")
+	@Operation(summary = "Listar as próprias candidaturas",
+			description = "Todas as candidaturas do estudante autenticado, inclusive suspensas, rejeitadas e "
+					+ "finalizadas, da mais recente para a mais antiga (appliedAt e id decrescentes). Filtro opcional "
+					+ "por status (SUBMITTED, IN_REVIEW, APPROVED, REJECTED, SUSPENDED; outro valor dá 400). Página "
+					+ "inicial 0, tamanho padrão 10 e máximo 50. Não traz o currículo enviado: use "
+					+ "GET /api/v1/applications/{id}/resume. Sem perfil de estudante, a lista vem vazia.")
+	public PageResponse<ApplicationSummaryResponse> listOwn(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@RequestParam(required = false) ApplicationStatus status,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		return applicationService.listOwn(principal.id(), status, page, size);
+	}
+
 	@GetMapping("/applications/{applicationId}/resume")
 	@PreAuthorize("hasAnyRole('STUDENT', 'COMPANY', 'ADMIN')")
-	@Operation(summary = "Baixar o PDF enviado em uma candidatura",
+	@Operation(summary = "Consultar o currículo enviado em uma candidatura",
 			description = "Disponível ao estudante dono, à empresa dona da vaga e ao administrador; para os demais, "
-					+ "404 APPLICATION_NOT_FOUND. Candidatura com currículo da plataforma não tem PDF: "
-					+ "404 RESUME_FILE_NOT_FOUND. O arquivo nunca tem URL pública e é entregue como anexo.")
-	public ResponseEntity<byte[]> downloadResume(
+					+ "404 APPLICATION_NOT_FOUND. Candidatura PLATFORM: o snapshot imutável em JSON (perfil, "
+					+ "currículo-base e competências no momento do envio). Candidatura PDF: o arquivo privado como "
+					+ "anexo (application/pdf), sem URL pública. O currículo de uma candidatura não pode ser editado."
+	)
+	public ResponseEntity<?> readResume(
 			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
 			@PathVariable UUID applicationId) {
-		ResumeDownload resume = applicationService.downloadResume(principal, applicationId);
-		return ResponseEntity.ok()
-				.contentType(MediaType.parseMediaType(resume.contentType()))
-				.header(HttpHeaders.CONTENT_DISPOSITION,
-						ContentDisposition.attachment().filename(resume.filename(), StandardCharsets.UTF_8).build()
-								.toString())
-				.body(resume.content());
+		return switch (applicationService.readResume(principal, applicationId)) {
+			case ResumeDocument.Snapshot resume -> ResponseEntity.ok()
+					.contentType(MediaType.APPLICATION_JSON)
+					.body(resume.snapshot());
+			case ResumeDocument.Pdf resume -> ResponseEntity.ok()
+					.contentType(MediaType.parseMediaType(resume.contentType()))
+					.header(HttpHeaders.CONTENT_DISPOSITION,
+							ContentDisposition.attachment().filename(resume.filename(), StandardCharsets.UTF_8)
+									.build().toString())
+					.body(resume.content());
+		};
 	}
 }
