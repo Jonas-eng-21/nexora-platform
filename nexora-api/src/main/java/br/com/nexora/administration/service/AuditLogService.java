@@ -28,7 +28,15 @@ public class AuditLogService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void record(UUID adminId, AdminAction action, AuditTargetType targetType, UUID targetId, String reason) {
-		auditLogRepository.save(new AdminAuditLog(adminId, action, targetType, targetId, reason));
+		record(adminId, action, targetType, targetId, reason, null, null);
+	}
+
+	/** Como a anterior, para ações que mudam um estado: guarda também o valor anterior e o novo. */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void record(UUID adminId, AdminAction action, AuditTargetType targetType, UUID targetId, String reason,
+			String previousValue, String newValue) {
+		auditLogRepository.save(
+				new AdminAuditLog(adminId, action, targetType, targetId, reason, previousValue, newValue));
 	}
 
 	@Transactional(readOnly = true)

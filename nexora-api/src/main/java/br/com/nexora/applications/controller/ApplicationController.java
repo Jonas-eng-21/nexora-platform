@@ -12,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,12 +22,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.nexora.applications.dto.ApplicationResponse;
+import br.com.nexora.applications.dto.ApplicationStatusResponse;
 import br.com.nexora.applications.dto.ApplicationSummaryResponse;
+import br.com.nexora.applications.dto.ChangeApplicationStatusRequest;
 import br.com.nexora.applications.dto.CreateApplicationRequest;
 import br.com.nexora.applications.dto.JobApplicationResponse;
 import br.com.nexora.applications.entity.ApplicationStatus;
 import br.com.nexora.applications.service.ApplicationService;
 import br.com.nexora.applications.service.ApplicationService.ResumeDocument;
+import br.com.nexora.applications.service.ApplicationStatusService;
 import br.com.nexora.applications.service.JobApplicationService;
 import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.shared.security.AuthenticatedUser;
@@ -41,11 +46,13 @@ public class ApplicationController {
 
 	private final ApplicationService applicationService;
 	private final JobApplicationService jobApplicationService;
+	private final ApplicationStatusService applicationStatusService;
 
 	public ApplicationController(ApplicationService applicationService,
-			JobApplicationService jobApplicationService) {
+			JobApplicationService jobApplicationService, ApplicationStatusService applicationStatusService) {
 		this.applicationService = applicationService;
 		this.jobApplicationService = jobApplicationService;
+		this.applicationStatusService = applicationStatusService;
 	}
 
 	@PostMapping(path = "/jobs/{jobId}/applications", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -84,6 +91,22 @@ public class ApplicationController {
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size) {
 		return jobApplicationService.listForOwnJob(principal.id(), jobId, status, page, size);
+	}
+
+	@PatchMapping("/applications/{applicationId}/status")
+	@PreAuthorize("hasRole('COMPANY')")
+	@Operation(summary = "Atualizar o andamento de uma candidatura da própria empresa",
+			description = "Transições permitidas: SUBMITTED para IN_REVIEW, APPROVED ou REJECTED, e IN_REVIEW para "
+					+ "APPROVED ou REJECTED. APPROVED e REJECTED são finais; SUSPENDED não pode ser atribuído "
+					+ "(409 INVALID_APPLICATION_STATUS_TRANSITION). Candidatura suspensa não avança "
+					+ "(409 APPLICATION_SUSPENDED) e o estudante precisa estar academicamente elegível "
+					+ "(403 STUDENT_NOT_VALIDATED). Rejeitar exige motivo (400 REJECTION_REASON_REQUIRED); o motivo "
+					+ "tem até 500 caracteres. Candidatura de outra empresa ou inexistente: 404 "
+					+ "APPLICATION_NOT_FOUND.")
+	public ApplicationStatusResponse changeStatus(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@PathVariable UUID applicationId, @Valid @RequestBody ChangeApplicationStatusRequest request) {
+		return applicationStatusService.changeAsCompany(principal.id(), applicationId, request);
 	}
 
 	@GetMapping("/applications/me")
