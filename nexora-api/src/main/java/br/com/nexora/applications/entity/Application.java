@@ -131,6 +131,18 @@ public class Application {
 		this.statusReason = reason;
 	}
 
+	/**
+	 * Volta ao andamento: restaura exatamente o estado guardado na suspensão e limpa os três dados da suspensão
+	 * (juntos, como exige a restrição do banco). A última decisão ordinária ({@code statusReason}) e o currículo
+	 * enviado não são tocados. Quem chama garante que a candidatura está SUSPENDED e que o estado guardado é válido.
+	 */
+	public void reactivate() {
+		this.status = this.suspendedFromStatus;
+		this.suspendedFromStatus = null;
+		this.suspensionReason = null;
+		this.suspendedAt = null;
+	}
+
 	/** Microssegundos: a mesma precisão que o PostgreSQL guarda, para a data não mudar ao ser relida. */
 	private static Instant now() {
 		return Instant.now().truncatedTo(ChronoUnit.MICROS);

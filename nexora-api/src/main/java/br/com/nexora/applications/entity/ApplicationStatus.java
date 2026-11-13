@@ -9,6 +9,11 @@ public enum ApplicationStatus {
 	 * IN_REVIEW vai para APPROVED ou REJECTED. APPROVED e REJECTED são finais, e SUSPENDED só sai por uma
 	 * reativação explícita (história própria): nenhum deles leva a lugar algum por aqui, nem a si mesmo.
 	 */
+	/** Em andamento: ainda pode avançar, e é o que a suspensão automática alcança (e a reativação restaura). */
+	public boolean isInProgress() {
+		return this == SUBMITTED || this == IN_REVIEW;
+	}
+
 	public boolean canMoveTo(ApplicationStatus target) {
 		return switch (this) {
 			case SUBMITTED -> target == IN_REVIEW || target == APPROVED || target == REJECTED;

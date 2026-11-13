@@ -4,12 +4,14 @@ import java.util.UUID;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.nexora.administration.service.AdminApplicationService;
+import br.com.nexora.applications.dto.ApplicationReactivationResponse;
 import br.com.nexora.applications.dto.ApplicationStatusResponse;
 import br.com.nexora.applications.dto.ChangeApplicationStatusRequest;
 import br.com.nexora.shared.security.AuthenticatedUser;
@@ -28,6 +30,18 @@ public class AdminApplicationStatusController {
 
 	public AdminApplicationStatusController(AdminApplicationService adminApplicationService) {
 		this.adminApplicationService = adminApplicationService;
+	}
+
+	@PostMapping("/{applicationId}/reactivate")
+	@Operation(summary = "Reativar uma candidatura suspensa",
+			description = "Sem corpo. Restaura exatamente o estado guardado na suspensão e limpa os dados da "
+					+ "suspensão; exige estudante academicamente elegível e com conta ativa e vaga disponível. "
+					+ "Mesmas regras e erros da rota da empresa. Ação auditada (APPLICATION_REACTIVATED), na mesma "
+					+ "transação.")
+	public ApplicationReactivationResponse reactivate(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser admin,
+			@PathVariable UUID applicationId) {
+		return adminApplicationService.reactivate(admin.id(), applicationId);
 	}
 
 	@PatchMapping("/{applicationId}/status")

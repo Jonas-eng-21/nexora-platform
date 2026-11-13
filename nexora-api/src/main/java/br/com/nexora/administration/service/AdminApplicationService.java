@@ -7,20 +7,37 @@ import org.springframework.transaction.annotation.Transactional;
 
 import br.com.nexora.administration.entity.AdminAction;
 import br.com.nexora.administration.entity.AuditTargetType;
+import br.com.nexora.applications.dto.ApplicationReactivationResponse;
 import br.com.nexora.applications.dto.ApplicationStatusResponse;
 import br.com.nexora.applications.dto.ChangeApplicationStatusRequest;
+import br.com.nexora.applications.service.ApplicationReactivationService;
 import br.com.nexora.applications.service.ApplicationStatusService;
 
 @Service
 public class AdminApplicationService {
 
 	private final ApplicationStatusService applicationStatusService;
+	private final ApplicationReactivationService applicationReactivationService;
 	private final AuditLogService auditLogService;
 
 	public AdminApplicationService(ApplicationStatusService applicationStatusService,
-			AuditLogService auditLogService) {
+			ApplicationReactivationService applicationReactivationService, AuditLogService auditLogService) {
 		this.applicationStatusService = applicationStatusService;
+		this.applicationReactivationService = applicationReactivationService;
 		this.auditLogService = auditLogService;
+	}
+
+	/**
+	 * Reativação explícita de candidatura suspensa, com as mesmas regras da empresa. A reativação e o registro de
+	 * auditoria (de SUSPENDED para o estado restaurado) acontecem na mesma transação: se a auditoria falhar, a
+	 * candidatura volta a ficar suspensa.
+	 */
+	@Transactional
+	public ApplicationReactivationResponse reactivate(UUID adminId, UUID applicationId) {
+		ApplicationReactivationResponse response = applicationReactivationService.reactivateById(applicationId);
+		auditLogService.record(adminId, AdminAction.APPLICATION_REACTIVATED, AuditTargetType.APPLICATION,
+				applicationId, null, response.previousStatus().name(), response.status().name());
+		return response;
 	}
 
 	/**

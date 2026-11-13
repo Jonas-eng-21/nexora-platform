@@ -163,6 +163,15 @@ public class JobService {
 	}
 
 	/**
+	 * Se a vaga ainda pode seguir recebendo e conduzindo candidaturas: existe, não foi excluída, está OPEN e a empresa
+	 * está ativa (a mesma regra de {@link #requireAcceptingApplications}, para quem precisa de um sim ou não).
+	 */
+	@Transactional(readOnly = true)
+	public boolean isAcceptingApplications(UUID jobId) {
+		return jobRepository.findOpenFromActiveCompanyById(jobId).isPresent();
+	}
+
+	/**
 	 * Vaga como o público a enxerga: aberta, não excluída e de empresa ativa; caso contrário, 404 JOB_NOT_FOUND.
 	 * Para outros módulos que precisam da entidade (ex.: matching), dentro da transação de quem chama.
 	 */
