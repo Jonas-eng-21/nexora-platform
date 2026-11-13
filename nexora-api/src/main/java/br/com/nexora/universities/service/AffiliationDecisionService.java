@@ -2,6 +2,7 @@ package br.com.nexora.universities.service;
 
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import br.com.nexora.shared.exception.ApiException;
 import br.com.nexora.universities.dto.ReceivedAffiliationResponse;
 import br.com.nexora.universities.entity.AffiliationStatus;
 import br.com.nexora.universities.entity.UniversityAffiliation;
+import br.com.nexora.universities.event.AcademicAffiliationRevoked;
 import br.com.nexora.universities.repository.UniversityAffiliationRepository;
 
 /**
@@ -23,11 +25,13 @@ public class AffiliationDecisionService {
 
 	private final UniversityAffiliationRepository affiliationRepository;
 	private final UniversityProfileService universityProfileService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public AffiliationDecisionService(UniversityAffiliationRepository affiliationRepository,
-			UniversityProfileService universityProfileService) {
+			UniversityProfileService universityProfileService, ApplicationEventPublisher eventPublisher) {
 		this.affiliationRepository = affiliationRepository;
 		this.universityProfileService = universityProfileService;
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional(readOnly = true)
@@ -83,6 +87,8 @@ public class AffiliationDecisionService {
 					"Apenas vínculos aprovados podem ser revogados.");
 		}
 		affiliation.recordRevocation(revokedBy, reason);
+		// Entregue de forma síncrona, na transação da revogação: quem reage (ex.: candidaturas) falhando desfaz tudo.
+		eventPublisher.publishEvent(new AcademicAffiliationRevoked(affiliation.getStudent().getId()));
 		return ReceivedAffiliationResponse.from(affiliation);
 	}
 
