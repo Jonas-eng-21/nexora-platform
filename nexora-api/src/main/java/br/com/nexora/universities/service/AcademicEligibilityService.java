@@ -2,6 +2,7 @@ package br.com.nexora.universities.service;
 
 import java.util.List;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -66,13 +67,25 @@ public class AcademicEligibilityService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void requireEligibleLocked(UUID studentId) {
-		UniversityAffiliation affiliation = affiliationRepository.findApprovedByStudentIdForShare(studentId)
-				.orElseThrow(AcademicEligibilityService::notValidated);
-		userRepository.findActiveByIdForShare(affiliation.getUniversity().getUserId())
-				.orElseThrow(AcademicEligibilityService::notValidated);
+		if (!lockEligibility(studentId)) {
+			throw notValidated();
+		}
 	}
 
-	private static ApiException notValidated() {
+	/**
+	 * Prende as mesmas travas de {@link #requireEligibleLocked}, mas só informa se o estudante é elegível, sem
+	 * lançar erro. Para quem precisa tomar as travas antes de bloquear outra linha (a ordem global é vínculo, conta,
+	 * candidaturas) e ainda decidir a precedência dos erros depois.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public boolean lockEligibility(UUID studentId) {
+		Optional<UniversityAffiliation> affiliation = affiliationRepository.findApprovedByStudentIdForShare(studentId);
+		return affiliation.isPresent()
+				&& userRepository.findActiveByIdForShare(affiliation.get().getUniversity().getUserId()).isPresent();
+	}
+
+	/** O erro padrão de estudante sem validação vigente (403 STUDENT_NOT_VALIDATED). */
+	public static ApiException notValidated() {
 		return new ApiException(HttpStatus.FORBIDDEN, "STUDENT_NOT_VALIDATED",
 				"O estudante não possui vínculo acadêmico aprovado e vigente com uma universidade ativa.");
 	}

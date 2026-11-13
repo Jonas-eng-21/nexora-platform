@@ -41,6 +41,13 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 	int suspendInProgress(@Param("studentIds") Collection<UUID> studentIds,
 			@Param("reason") SuspensionReason reason, @Param("now") Instant now);
 
+	@Query("""
+			select new br.com.nexora.applications.repository.ApplicationParties(
+			    a.student.id, a.student.userId, a.job.company.userId, a.job.id)
+			from Application a where a.id = :id
+			""")
+	Optional<ApplicationParties> findParties(@Param("id") UUID id);
+
 	/** Bloqueia a linha até o fim da transação, para duas decisões simultâneas não se sobreporem. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select a from Application a where a.id = :id")

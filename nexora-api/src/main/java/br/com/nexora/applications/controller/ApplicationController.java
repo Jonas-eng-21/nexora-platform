@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.nexora.applications.dto.ApplicationResponse;
+import br.com.nexora.applications.dto.ApplicationReactivationResponse;
 import br.com.nexora.applications.dto.ApplicationStatusResponse;
 import br.com.nexora.applications.dto.ApplicationSummaryResponse;
 import br.com.nexora.applications.dto.ChangeApplicationStatusRequest;
@@ -30,6 +31,7 @@ import br.com.nexora.applications.dto.JobApplicationResponse;
 import br.com.nexora.applications.entity.ApplicationStatus;
 import br.com.nexora.applications.service.ApplicationService;
 import br.com.nexora.applications.service.ApplicationService.ResumeDocument;
+import br.com.nexora.applications.service.ApplicationReactivationService;
 import br.com.nexora.applications.service.ApplicationStatusService;
 import br.com.nexora.applications.service.JobApplicationService;
 import br.com.nexora.shared.dto.PageResponse;
@@ -47,12 +49,15 @@ public class ApplicationController {
 	private final ApplicationService applicationService;
 	private final JobApplicationService jobApplicationService;
 	private final ApplicationStatusService applicationStatusService;
+	private final ApplicationReactivationService applicationReactivationService;
 
 	public ApplicationController(ApplicationService applicationService,
-			JobApplicationService jobApplicationService, ApplicationStatusService applicationStatusService) {
+			JobApplicationService jobApplicationService, ApplicationStatusService applicationStatusService,
+			ApplicationReactivationService applicationReactivationService) {
 		this.applicationService = applicationService;
 		this.jobApplicationService = jobApplicationService;
 		this.applicationStatusService = applicationStatusService;
+		this.applicationReactivationService = applicationReactivationService;
 	}
 
 	@PostMapping(path = "/jobs/{jobId}/applications", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -107,6 +112,22 @@ public class ApplicationController {
 			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
 			@PathVariable UUID applicationId, @Valid @RequestBody ChangeApplicationStatusRequest request) {
 		return applicationStatusService.changeAsCompany(principal.id(), applicationId, request);
+	}
+
+	@PostMapping("/applications/{applicationId}/reactivate")
+	@PreAuthorize("hasRole('COMPANY')")
+	@Operation(summary = "Reativar uma candidatura suspensa da própria empresa",
+			description = "Sem corpo. Restaura exatamente o estado guardado na suspensão (SUBMITTED ou IN_REVIEW) e "
+					+ "limpa os dados da suspensão, preservando o currículo e a última decisão. Exige candidatura "
+					+ "suspensa (409 APPLICATION_NOT_SUSPENDED), estado guardado válido (409 "
+					+ "INVALID_SUSPENSION_STATE), conta do estudante ativa (409 STUDENT_ACCOUNT_NOT_ACTIVE), "
+					+ "estudante academicamente elegível (403 STUDENT_NOT_VALIDATED) e vaga aberta, não excluída e de "
+					+ "empresa ativa (409 JOB_NOT_AVAILABLE). Candidatura de outra empresa ou inexistente: 404 "
+					+ "APPLICATION_NOT_FOUND. Nunca acontece sozinha.")
+	public ApplicationReactivationResponse reactivate(
+			@Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal,
+			@PathVariable UUID applicationId) {
+		return applicationReactivationService.reactivateAsCompany(principal.id(), applicationId);
 	}
 
 	@GetMapping("/applications/me")
