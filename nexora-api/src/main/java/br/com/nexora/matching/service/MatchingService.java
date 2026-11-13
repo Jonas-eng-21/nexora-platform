@@ -24,10 +24,13 @@ import br.com.nexora.matching.calculator.MatchInput.SkillRef;
 import br.com.nexora.matching.calculator.MatchResult;
 import br.com.nexora.matching.dto.JobMatchResponse;
 import br.com.nexora.matching.dto.RecommendedJobResponse;
+import br.com.nexora.matching.dto.RecommendedStudentResponse;
+import br.com.nexora.matching.dto.StudentSummary;
 import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.skills.entity.Skill;
 import br.com.nexora.students.entity.Student;
 import br.com.nexora.students.service.StudentProfileService;
+import br.com.nexora.universities.service.AcademicEligibilityService;
 
 /**
  * Monta a entrada do cálculo a partir do perfil, do currículo-base e das competências do catálogo.
@@ -39,19 +42,29 @@ public class MatchingService {
 	/** Teto de vagas avaliadas por consulta de recomendação. */
 	static final int MAX_EVALUATED_JOBS = 500;
 
+	/** Teto de estudantes avaliados por consulta de recomendação para uma vaga. */
+	static final int MAX_EVALUATED_STUDENTS = 500;
+
 	private static final Comparator<RecommendedJobResponse> BEST_MATCH_FIRST = Comparator
 			.comparingInt((RecommendedJobResponse item) -> item.match().score()).reversed()
 			.thenComparing(item -> item.job().createdAt(), Comparator.reverseOrder())
 			.thenComparing(item -> item.job().id());
 
+	private static final Comparator<RankedStudent> BEST_MATCH_FIRST_STUDENT = Comparator
+			.comparingInt((RankedStudent item) -> item.match().score()).reversed()
+			.thenComparing(item -> item.student().getCreatedAt(), Comparator.reverseOrder())
+			.thenComparing(item -> item.student().getId());
+
 	private final StudentProfileService studentProfileService;
 	private final JobService jobService;
+	private final AcademicEligibilityService eligibilityService;
 	private final MatchCalculator matchCalculator;
 
 	public MatchingService(StudentProfileService studentProfileService, JobService jobService,
-			MatchCalculator matchCalculator) {
+			AcademicEligibilityService eligibilityService, MatchCalculator matchCalculator) {
 		this.studentProfileService = studentProfileService;
 		this.jobService = jobService;
+		this.eligibilityService = eligibilityService;
 		this.matchCalculator = matchCalculator;
 	}
 
@@ -83,6 +96,43 @@ public class MatchingService {
 		int to = Math.min(from + pageable.getPageSize(), ranked.size());
 		return PageResponse.from(new PageImpl<>(ranked.subList(from, to), pageable, ranked.size()),
 				recommendation -> recommendation);
+	}
+
+	/** Estudantes recomendados para uma vaga da empresa autenticada (404 JOB_NOT_FOUND se de outra empresa). */
+	@Transactional(readOnly = true)
+	public PageResponse<RecommendedStudentResponse> recommendStudentsForOwnJob(UUID companyUserId, UUID jobId,
+			int page, int size) {
+		return recommendStudents(jobService.getOwnedActiveJob(companyUserId, jobId), page, size);
+	}
+
+	/** Estudantes recomendados para qualquer vaga não excluída: rota do administrador. */
+	@Transactional(readOnly = true)
+	public PageResponse<RecommendedStudentResponse> recommendStudentsForJob(UUID jobId, int page, int size) {
+		return recommendStudents(jobService.getActiveJobById(jobId), page, size);
+	}
+
+	/**
+	 * Só entram estudantes academicamente elegíveis (regra única de {@link AcademicEligibilityService}) e com
+	 * conta ativa. Ordena por score decrescente e, no empate, pelo perfil mais recente e depois pelo id. Como o
+	 * score não é gravado, ordenação e paginação são em memória sobre, no máximo, os
+	 * {@value #MAX_EVALUATED_STUDENTS} perfis elegíveis mais recentes.
+	 */
+	private PageResponse<RecommendedStudentResponse> recommendStudents(Job job, int page, int size) {
+		List<RecommendedStudentResponse> ranked = studentProfileService
+				.listActiveByIds(eligibilityService.eligibleStudentIds(), MAX_EVALUATED_STUDENTS).stream()
+				.map(student -> new RankedStudent(student, calculate(student, job)))
+				.sorted(BEST_MATCH_FIRST_STUDENT)
+				.map(item -> new RecommendedStudentResponse(StudentSummary.from(item.student()), item.match()))
+				.toList();
+
+		Pageable pageable = PageResponse.pageable(page, size, Sort.unsorted());
+		int from = (int) Math.min(pageable.getOffset(), ranked.size());
+		int to = Math.min(from + pageable.getPageSize(), ranked.size());
+		return PageResponse.from(new PageImpl<>(ranked.subList(from, to), pageable, ranked.size()),
+				recommendation -> recommendation);
+	}
+
+	private record RankedStudent(Student student, MatchResult match) {
 	}
 
 	/** Reutilizado pelas recomendações: mesma regra para qualquer par estudante–vaga. */

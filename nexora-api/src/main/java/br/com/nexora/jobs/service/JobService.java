@@ -181,13 +181,18 @@ public class JobService {
 				Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id"))));
 	}
 
-	private Job getOwnedActiveJob(UUID userId, UUID jobId) {
+	/**
+	 * Vaga não excluída da empresa da conta informada, em qualquer status; de outra empresa responde 404
+	 * JOB_NOT_FOUND. Para outros módulos (ex.: matching), dentro da transação de quem chama.
+	 */
+	public Job getOwnedActiveJob(UUID userId, UUID jobId) {
 		Company company = companyProfileService.getByUserId(userId);
 		return jobRepository.findByIdAndCompanyIdAndDeletedAtIsNull(jobId, company.getId())
 				.orElseThrow(JobService::notFound);
 	}
 
-	private Job getActiveJobById(UUID jobId) {
+	/** Vaga não excluída, em qualquer status e de qualquer empresa: só para o administrador. */
+	public Job getActiveJobById(UUID jobId) {
 		return jobRepository.findByIdAndDeletedAtIsNull(jobId).orElseThrow(JobService::notFound);
 	}
 

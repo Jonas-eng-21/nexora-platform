@@ -1,5 +1,6 @@
 package br.com.nexora.universities.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,12 @@ public class AcademicEligibilityService {
 	@Transactional(readOnly = true)
 	public boolean isEligible(UUID studentId) {
 		return affiliationRepository.existsApprovedWithActiveUniversity(studentId);
+	}
+
+	/** Ids dos perfis de estudante hoje elegíveis, para listagens que só podem incluir estudantes validados. */
+	@Transactional(readOnly = true)
+	public List<UUID> eligibleStudentIds() {
+		return affiliationRepository.findEligibleStudentIds();
 	}
 
 	/** Para operações que exigem validação acadêmica: falha com 403 STUDENT_NOT_VALIDATED. */
