@@ -443,8 +443,13 @@ class ApplicationStatusUpdateTests {
 
 	private void setStatus(String newStatus) {
 		entityManager.flush();
-		jdbcTemplate.update("UPDATE applications SET status = ?, status_reason = NULL WHERE id = ?", newStatus,
-				applicationId);
+		// Uma candidatura SUSPENDED sempre traz os dados da suspensão (restrição do banco).
+		jdbcTemplate.update("""
+				UPDATE applications SET status = ?, status_reason = NULL,
+				  suspended_from_status = CASE WHEN ?::text = 'SUSPENDED' THEN 'SUBMITTED' END,
+				  suspension_reason = CASE WHEN ?::text = 'SUSPENDED' THEN 'ACADEMIC_AFFILIATION_REVOKED' END,
+				  suspended_at = CASE WHEN ?::text = 'SUSPENDED' THEN now() END
+				WHERE id = ?""", newStatus, newStatus, newStatus, newStatus, applicationId);
 		entityManager.clear();
 	}
 
