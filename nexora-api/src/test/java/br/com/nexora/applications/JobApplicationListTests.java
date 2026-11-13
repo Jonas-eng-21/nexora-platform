@@ -407,14 +407,23 @@ class JobApplicationListTests {
 		if (resumeType.equals("PDF")) {
 			return jdbcTemplate.queryForObject("""
 					INSERT INTO applications (student_id, job_id, resume_type, status, storage_key, original_filename,
-					                          file_size, content_type, created_at, updated_at)
-					VALUES (?, ?, 'PDF', ?, ?, 'curriculo.pdf', 10, 'application/pdf', ?, ?) RETURNING id
-					""", UUID.class, studentId, UUID.fromString(job), status, UUID.randomUUID() + ".pdf", when, when);
+					                          file_size, content_type, created_at, updated_at,
+					                          suspended_from_status, suspension_reason, suspended_at)
+					VALUES (?, ?, 'PDF', ?, ?, 'curriculo.pdf', 10, 'application/pdf', ?, ?,
+					        CASE WHEN ?::text = 'SUSPENDED' THEN 'SUBMITTED' END,
+					        CASE WHEN ?::text = 'SUSPENDED' THEN 'ACADEMIC_AFFILIATION_REVOKED' END,
+					        CASE WHEN ?::text = 'SUSPENDED' THEN ?::timestamptz END) RETURNING id
+					""", UUID.class, studentId, UUID.fromString(job), status, UUID.randomUUID() + ".pdf", when, when,
+					status, status, status, when);
 		}
 		return jdbcTemplate.queryForObject("""
-				INSERT INTO applications (student_id, job_id, resume_type, status, resume_snapshot, created_at, updated_at)
-				VALUES (?, ?, 'PLATFORM', ?, '{}'::jsonb, ?, ?) RETURNING id
-				""", UUID.class, studentId, UUID.fromString(job), status, when, when);
+				INSERT INTO applications (student_id, job_id, resume_type, status, resume_snapshot, created_at, updated_at,
+				                          suspended_from_status, suspension_reason, suspended_at)
+				VALUES (?, ?, 'PLATFORM', ?, '{}'::jsonb, ?, ?,
+				        CASE WHEN ?::text = 'SUSPENDED' THEN 'SUBMITTED' END,
+				        CASE WHEN ?::text = 'SUSPENDED' THEN 'ACADEMIC_AFFILIATION_REVOKED' END,
+				        CASE WHEN ?::text = 'SUSPENDED' THEN ?::timestamptz END) RETURNING id
+				""", UUID.class, studentId, UUID.fromString(job), status, when, when, status, status, status, when);
 	}
 
 	private UUID studentProfileId(User owner) {
