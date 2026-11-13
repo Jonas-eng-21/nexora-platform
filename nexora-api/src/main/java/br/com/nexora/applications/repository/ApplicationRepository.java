@@ -28,4 +28,18 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 			""")
 	Page<Application> searchByStudentUser(@Param("userId") UUID userId, @Param("status") ApplicationStatus status,
 			Pageable pageable);
+
+	/**
+	 * Candidaturas de uma vaga. O estudante vem no mesmo SELECT (e as competências dele em lote, por
+	 * {@code default_batch_fetch_size}), evitando uma consulta por linha. Status null significa "qualquer".
+	 */
+	@Query(value = """
+			select a from Application a join fetch a.student
+			where a.job.id = :jobId and (:status is null or a.status = :status)
+			""", countQuery = """
+			select count(a) from Application a
+			where a.job.id = :jobId and (:status is null or a.status = :status)
+			""")
+	Page<Application> searchByJob(@Param("jobId") UUID jobId, @Param("status") ApplicationStatus status,
+			Pageable pageable);
 }
