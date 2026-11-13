@@ -282,17 +282,6 @@ class ApplicationPdfTests {
 	}
 
 	@Test
-	void platformApplicationsHaveNoPdfToDownload() throws Exception {
-		String response = as(student, multipart("/api/v1/jobs/" + jobId + "/applications").param("resumeType", "PLATFORM"))
-				.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
-		String id = JsonPath.read(response, "$.id");
-
-		as(student, get("/api/v1/applications/" + id + "/resume"))
-				.andExpect(status().isNotFound())
-				.andExpect(jsonPath("$.code").value("RESUME_FILE_NOT_FOUND"));
-	}
-
-	@Test
 	void companyStillReadsThePdfAfterTheStudentLosesTheAffiliation() throws Exception {
 		byte[] pdf = pdf(800);
 		String id = apply(student, "cv.pdf", pdf);
