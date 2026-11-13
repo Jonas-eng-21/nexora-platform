@@ -71,7 +71,8 @@ public class ApplicationService {
 	@Transactional
 	public ApplicationResponse apply(UUID studentUserId, UUID jobId, CreateApplicationRequest request) {
 		Student student = studentProfileService.getByUserId(studentUserId);
-		eligibilityService.requireEligible(student.getId());
+		// Com trava: uma revogação ou suspensão simultânea espera esta candidatura (e a suspende) ou termina antes.
+		eligibilityService.requireEligibleLocked(student.getId());
 		Job job = jobService.requireAcceptingApplications(jobId);
 		if (applicationRepository.existsByStudentIdAndJobId(student.getId(), job.getId())) {
 			throw new ApiException(HttpStatus.CONFLICT, "APPLICATION_ALREADY_EXISTS",

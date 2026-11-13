@@ -34,6 +34,27 @@ public interface UniversityAffiliationRepository extends JpaRepository<Universit
 	boolean existsApprovedWithActiveUniversity(@Param("studentId") UUID studentId);
 
 	/**
+	 * Lê o vínculo aprovado do estudante com trava compartilhada (FOR SHARE) até o fim da transação. Conflita com a
+	 * trava exclusiva da revogação, então uma candidatura nova e uma revogação simultâneas se enfileiram em vez de
+	 * se cruzarem. Se a revogação vencer, a leitura é reavaliada e não encontra mais o vínculo aprovado.
+	 */
+	@Lock(LockModeType.PESSIMISTIC_READ)
+	@Query("""
+			select a from UniversityAffiliation a
+			where a.student.id = :studentId
+			  and a.status = br.com.nexora.universities.entity.AffiliationStatus.APPROVED
+			""")
+	Optional<UniversityAffiliation> findApprovedByStudentIdForShare(@Param("studentId") UUID studentId);
+
+	/** Estudantes com vínculo aprovado com a universidade da conta informada (a suspensão não os revoga). */
+	@Query("""
+			select a.student.id from UniversityAffiliation a
+			where a.university.userId = :universityUserId
+			  and a.status = br.com.nexora.universities.entity.AffiliationStatus.APPROVED
+			""")
+	List<UUID> findApprovedStudentIdsByUniversityUserId(@Param("universityUserId") UUID universityUserId);
+
+	/**
 	 * A mesma regra de elegibilidade da consulta acima, para todos os estudantes de uma vez. As duas devem
 	 * mudar juntas; os testes de elegibilidade e de recomendação de estudantes cobrem as duas.
 	 */
