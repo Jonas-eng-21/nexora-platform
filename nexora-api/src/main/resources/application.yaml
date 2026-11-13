@@ -12,6 +12,11 @@ spring:
         default_batch_fetch_size: 50
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      # Currículo em PDF: 5 MiB (5.242.880 bytes). O servidor confere o limite também no serviço.
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 # Documentação OpenAPI desligada por padrão; habilitada apenas no perfil dev.
 springdoc:
@@ -33,6 +38,10 @@ nexora:
       desired-skills: 20
       interests: 20
       work-model-and-location: 15
+  storage:
+    # Pasta privada dos PDFs de candidatura. No Docker é um volume nomeado montado só no backend;
+    # nunca servida como recurso estático. Precisa ser durável (volume persistente ou storage privado).
+    resumes-dir: ${RESUMES_STORAGE_DIR:/data/resumes}
   security:
     jwt:
       # Segredo HMAC (HS256), mínimo de 32 caracteres. Obrigatório: sem valor padrão de propósito.

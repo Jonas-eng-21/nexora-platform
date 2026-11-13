@@ -1,6 +1,6 @@
 package br.com.nexora.applications.entity;
 
-/** Documento enviado na candidatura. Exclusivo: PLATFORM (snapshot do currículo-base). O PDF entra na US-28. */
+/** Documento enviado na candidatura, sempre exclusivo: snapshot do currículo-base ou um PDF próprio. */
 public enum ResumeType {
-	PLATFORM
+	PLATFORM, PDF
 }

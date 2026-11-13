@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -81,6 +82,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		body.setProperty(CODE, "VALIDATION_ERROR");
 		body.setProperty("errors", errors);
 		return handleExceptionInternal(ex, body, headers, status, request);
+	}
+
+	/** Limite de upload do contêiner HTTP (5 MiB por arquivo): mesmo código que a checagem do serviço. */
+	@Override
+	protected ResponseEntity<Object> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE,
+				"O PDF excede o limite de 5 MiB (5.242.880 bytes).");
+		body.setProperty(CODE, "RESUME_FILE_TOO_LARGE");
+		return handleExceptionInternal(ex, body, headers, HttpStatus.PAYLOAD_TOO_LARGE, request);
 	}
 
 	/** Erros padrão do Spring MVC (JSON malformado, rota inexistente etc.) recebem o nome do status como code. */

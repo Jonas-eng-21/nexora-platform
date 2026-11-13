@@ -99,6 +99,13 @@ Ou de uma ferramenta local: `127.0.0.1:5432`, com as credenciais do `.env`.
 Os dados ficam no volume `nexora_postgres_data` (montado em `/var/lib/postgresql`, layout do PostgreSQL 18).
 Sobrevivem a `docker compose down`. **Apagam os dados**: `docker compose down -v`.
 
+Os PDFs de currículo das candidaturas ficam no volume `nexora_resumes_data`, montado **só no backend** em
+`/data/resumes` (pasta configurável por `RESUMES_STORAGE_DIR`). Não há rota pública para eles: o download é feito
+por `GET /api/v1/applications/{id}/resume`, com autenticação e autorização. O volume guarda os arquivos e o banco
+guarda os metadados, então **os dois precisam de backup juntos**; `docker compose down -v` apaga ambos. Em produção,
+o volume só serve enquanto houver uma única instância com disco durável; caso contrário, troque
+`ResumeFileStorage` por um serviço privado de objetos antes do deploy.
+
 ### Frontend (futuro)
 Criar `frontend/` com `Dockerfile` (build Node -> Nginx) e adicionar um serviço `frontend` em `compose.yaml`
 (`build: ./frontend`, `depends_on: backend`). Nada mais precisa mudar.

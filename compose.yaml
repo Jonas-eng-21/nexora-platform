@@ -36,6 +36,9 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-60m}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      # PDFs de candidatura: volume nomeado, montado só no backend e fora de qualquer rota pública.
+      - resumes_data:/data/resumes
     ports:
       - "${BACKEND_PORT:-8080}:8080"
 
@@ -43,3 +46,4 @@ services:
 
 volumes:
   postgres_data:
+  resumes_data:
