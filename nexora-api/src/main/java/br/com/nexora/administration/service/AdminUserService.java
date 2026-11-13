@@ -2,6 +2,7 @@ package br.com.nexora.administration.service;
 
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.nexora.administration.entity.AdminAction;
 import br.com.nexora.administration.entity.AuditTargetType;
 import br.com.nexora.shared.exception.ApiException;
+import br.com.nexora.universities.event.UniversitySuspended;
 import br.com.nexora.users.entity.AccountStatus;
 import br.com.nexora.users.entity.User;
 import br.com.nexora.users.entity.UserRole;
@@ -21,10 +23,13 @@ public class AdminUserService {
 
 	private final UserRepository userRepository;
 	private final AuditLogService auditLogService;
+	private final ApplicationEventPublisher eventPublisher;
 
-	public AdminUserService(UserRepository userRepository, AuditLogService auditLogService) {
+	public AdminUserService(UserRepository userRepository, AuditLogService auditLogService,
+			ApplicationEventPublisher eventPublisher) {
 		this.userRepository = userRepository;
 		this.auditLogService = auditLogService;
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional(readOnly = true)
@@ -47,6 +52,11 @@ public class AdminUserService {
 		User user = findUser(userId);
 		requireStatus(user, AccountStatus.ACTIVE, "Apenas contas ativas podem ser suspensas.");
 		user.changeStatus(AccountStatus.SUSPENDED);
+		if (user.getRole() == UserRole.UNIVERSITY) {
+			// Os vínculos seguem aprovados, porém inelegíveis; as candidaturas em andamento são suspensas, de forma
+			// síncrona e na mesma transação, por quem escuta o evento.
+			eventPublisher.publishEvent(new UniversitySuspended(userId));
+		}
 		auditLogService.record(adminId, AdminAction.USER_SUSPENDED, AuditTargetType.USER, userId, reason);
 		return user;
 	}
