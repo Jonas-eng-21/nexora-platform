@@ -4,9 +4,6 @@
 .idea/
 .vscode/
 
-# Documentação local de contexto (não versionar)
-context/
-
 # Antigravity Skills locais
 .agents/
 
