@@ -1,6 +1,7 @@
 package br.com.nexora.shared.exception;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,6 +45,11 @@ class ErrorContractTestController {
 	@GetMapping("/data-conflict")
 	String dataConflict() {
 		throw new DataIntegrityViolationException("Key (email)=(secret@nexora.test) already exists");
+	}
+
+	@GetMapping("/optimistic-lock")
+	String optimisticLock() {
+		throw new ObjectOptimisticLockingFailureException("br.com.nexora.users.entity.User", "internal-id-123");
 	}
 
 	@GetMapping("/unexpected")

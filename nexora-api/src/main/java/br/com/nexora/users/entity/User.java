@@ -15,6 +15,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,6 +43,14 @@ public class User {
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private AccountStatus status;
+
+	/**
+	 * Controle otimista: toda alteração confirma a versão lida. Se outra transação alterou a conta no meio
+	 * (ex.: suspensão do administrador), a gravação com estado antigo falha em vez de sobrescrevê-la.
+	 */
+	@Version
+	@Column(nullable = false)
+	private Long version;
 
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)

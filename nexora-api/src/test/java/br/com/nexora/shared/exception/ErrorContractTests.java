@@ -50,6 +50,17 @@ class ErrorContractTests {
 	}
 
 	@Test
+	void optimisticLockConflictReturns409WithoutInternalDetails() throws Exception {
+		mockMvc.perform(get("/test-errors/optimistic-lock").with(user("tester")))
+				.andExpect(status().isConflict())
+				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(jsonPath("$.status").value(409))
+				.andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"))
+				.andExpect(content().string(not(containsString("internal-id-123"))))
+				.andExpect(content().string(not(containsString("User"))));
+	}
+
+	@Test
 	void malformedJsonReturns400() throws Exception {
 		mockMvc.perform(post("/test-errors/validation").with(user("tester"))
 				.contentType(MediaType.APPLICATION_JSON)

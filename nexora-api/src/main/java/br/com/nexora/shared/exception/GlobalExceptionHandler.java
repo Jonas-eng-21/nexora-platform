@@ -6,6 +6,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -63,6 +64,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		// A mensagem do banco pode conter dados pessoais (ex.: e-mail duplicado): não logar nem devolver.
 		log.warn("Data integrity violation ({})", ex.getMostSpecificCause().getClass().getSimpleName());
 		return problem(HttpStatus.CONFLICT, "DATA_CONFLICT", "A operação conflita com dados já existentes.");
+	}
+
+	/**
+	 * Controle otimista (@Version): outra transação alterou o mesmo registro entre a leitura e a gravação. A escrita
+	 * conflitante é rejeitada, nunca aplicada nem repetida às cegas; o cliente pode reler e tentar de novo.
+	 */
+	@ExceptionHandler(OptimisticLockingFailureException.class)
+	ProblemDetail handleOptimisticLock(OptimisticLockingFailureException ex) {
+		log.warn("Concurrent modification rejected ({})", ex.getClass().getSimpleName());
+		return problem(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION",
+				"Os dados foram alterados por outra operação. Recarregue e tente novamente.");
 	}
 
 	@ExceptionHandler(Exception.class)
