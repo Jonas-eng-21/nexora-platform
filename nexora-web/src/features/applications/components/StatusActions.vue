@@ -1,51 +1,41 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { toApiError } from '@/shared/api/apiError'
 import { forCompany } from '@/features/companies/errors'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import ConfirmPanel from '@/shared/ui/ConfirmPanel.vue'
-import TextField from '@/shared/ui/TextField.vue'
+import ReasonConfirmPanel from '@/shared/ui/ReasonConfirmPanel.vue'
+import { adminApi } from '@/features/administration/api/adminApi'
 import { companyApplicationApi, type Reactivation, type StatusChange } from '../api/companyApplicationApi'
 import { APPLICATION_STATUS_LABEL } from '../labels'
 import { REASON_MAX, availableActions, canReactivate, validateDecision, type DecisionStatus } from '../statusRules'
 import type { ApplicationStatus } from '../types'
 
-const props = defineProps<{ applicationId: string; status: ApplicationStatus }>()
+// `scope="admin"` usa as rotas /admin/applications (mesmas transições, com auditoria no backend).
+const props = withDefaults(defineProps<{ applicationId: string; status: ApplicationStatus; scope?: 'company' | 'admin' }>(), { scope: 'company' })
 const emit = defineEmits<{ changed: [result: StatusChange | Reactivation] }>()
 
 const ACTION_LABEL: Record<DecisionStatus, string> = { IN_REVIEW: 'Iniciar análise', APPROVED: 'Aprovar', REJECTED: 'Rejeitar' }
 const actions = computed(() => availableActions(props.status))
 
 const pending = ref<DecisionStatus | 'REACTIVATE' | null>(null)
-const reason = ref('')
-const reasonError = ref('')
 const error = ref('')
 const loading = ref(false)
-const root = ref<HTMLElement | null>(null)
 
 function open(target: DecisionStatus | 'REACTIVATE') {
   pending.value = target
-  reason.value = ''
-  reasonError.value = ''
   error.value = ''
 }
 const close = () => { pending.value = null }
 
-async function run(target: DecisionStatus | 'REACTIVATE') {
+async function run(target: DecisionStatus | 'REACTIVATE', reason = '') {
   error.value = ''
-  if (target !== 'REACTIVATE') {
-    reasonError.value = validateDecision(target, reason.value) ?? ''
-    if (reasonError.value) {
-      await nextTick()
-      root.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
-      return
-    }
-  }
   loading.value = true
   try {
+    const admin = props.scope === 'admin'
     const result = target === 'REACTIVATE'
-      ? await companyApplicationApi.reactivate(props.applicationId)
-      : await companyApplicationApi.changeStatus(props.applicationId, target, reason.value)
+      ? await (admin ? adminApi.reactivateApplication(props.applicationId) : companyApplicationApi.reactivate(props.applicationId))
+      : await (admin ? adminApi.changeApplicationStatus(props.applicationId, target, reason) : companyApplicationApi.changeStatus(props.applicationId, target, reason))
     pending.value = null
     emit('changed', result)
   } catch (e) {
@@ -57,7 +47,7 @@ async function run(target: DecisionStatus | 'REACTIVATE') {
 </script>
 
 <template>
-  <div ref="root" class="space-y-3">
+  <div class="space-y-3">
     <p v-if="status === 'APPROVED' || status === 'REJECTED'" class="text-sm text-muted">Decisão final: {{ APPLICATION_STATUS_LABEL[status].toLowerCase() }}. Não há novas ações para esta candidatura.</p>
 
     <template v-if="actions.length">
@@ -69,19 +59,21 @@ async function run(target: DecisionStatus | 'REACTIVATE') {
       <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
     </template>
 
-    <ConfirmPanel
+    <ReasonConfirmPanel
       v-if="pending === 'APPROVED' || pending === 'REJECTED'"
       :title="pending === 'APPROVED' ? 'Aprovar esta candidatura?' : 'Rejeitar esta candidatura?'"
       message="A decisão é final e não poderá ser desfeita."
       :confirm-label="pending === 'APPROVED' ? 'Confirmar aprovação' : 'Confirmar rejeição'"
+      :reason-label="pending === 'REJECTED' ? 'Motivo da rejeição' : 'Motivo'"
+      :required="pending === 'REJECTED'"
       :danger="pending === 'REJECTED'"
+      :validate="(r: string) => validateDecision(pending as DecisionStatus, r)"
+      :maxlength="REASON_MAX"
       :loading="loading"
       :error="error"
-      @confirm="run(pending as DecisionStatus)"
+      @confirm="(r: string) => run(pending as DecisionStatus, r)"
       @cancel="close"
-    >
-      <TextField v-model="reason" :label="pending === 'REJECTED' ? 'Motivo da rejeição' : 'Motivo (opcional)'" name="reason" multiline :required="pending === 'REJECTED'" :maxlength="REASON_MAX" :error="reasonError" :hint="`${reason.length} de ${REASON_MAX} caracteres.`" />
-    </ConfirmPanel>
+    />
 
     <template v-if="canReactivate(status)">
       <p class="text-sm">

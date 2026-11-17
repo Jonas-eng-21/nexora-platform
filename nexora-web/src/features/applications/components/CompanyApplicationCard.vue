@@ -9,7 +9,7 @@ import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE, RESUME_TYPE_LABEL } 
 import ResumeViewer from './ResumeViewer.vue'
 import StatusActions from './StatusActions.vue'
 
-const props = defineProps<{ application: JobApplication }>()
+const props = withDefaults(defineProps<{ application: JobApplication; scope?: 'company' | 'admin'; headingTag?: 'h2' | 'h3' }>(), { scope: 'company', headingTag: 'h3' })
 const { label: areaLabel } = useAreas()
 
 const status = ref(props.application.status)
@@ -26,7 +26,7 @@ function changed(result: StatusChange | Reactivation) {
     <div class="flex flex-col gap-4 sm:flex-row sm:justify-between">
       <div class="min-w-0 space-y-1">
         <div class="flex flex-wrap items-center gap-2">
-          <h3 class="text-lg font-semibold">{{ application.student.fullName }}</h3>
+          <component :is="headingTag" class="text-lg font-semibold">{{ application.student.fullName }}</component>
           <StatusBadge :tone="APPLICATION_STATUS_TONE[status]">{{ APPLICATION_STATUS_LABEL[status] }}</StatusBadge>
         </div>
         <p class="text-sm text-muted">{{ [application.student.course, application.student.location].filter(Boolean).join(' · ') || 'Curso e localização não informados' }}</p>
@@ -43,6 +43,6 @@ function changed(result: StatusChange | Reactivation) {
     <ResumeViewer :application-id="application.id" :resume-type="application.resumeType" note="Cópia do currículo exatamente como o estudante enviou. Ela não reflete alterações feitas depois no currículo-base." />
 
     <p v-if="notice" role="status" class="text-sm font-medium">{{ notice }}</p>
-    <StatusActions :application-id="application.id" :status="status" @changed="changed" />
+    <StatusActions :application-id="application.id" :status="status" :scope="scope" @changed="changed" />
   </article>
 </template>
