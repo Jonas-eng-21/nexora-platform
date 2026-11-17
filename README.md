@@ -186,8 +186,12 @@ SPA Vue 3 em modo desenvolvimento (Vite com HMR), serviço `frontend` do Compose
   explicável, sem dados privados). Para a universidade, a área
   completa em `/universidade`: início com a fila de solicitações aguardando análise, `vinculos` (solicitações
   recebidas com filtro por situação, aprovar, rejeitar com motivo e revogar vínculo com confirmação; a suspensão das
-  candidaturas na revogação é automática no backend) e `perfil` (dados institucionais). O admin ainda tem só uma área
-  mínima com os dados da conta (US-38). Rotas protegidas por sessão e por papel.
+  candidaturas na revogação é automática no backend) e `perfil` (dados institucionais). Para o administrador, a área
+  em `/admin`: início com os cadastros de universidade aguardando aprovação e contagens reais de vínculos pendentes e
+  contas suspensas, `universidades` (aprovar ou rejeitar com motivo), `usuarios` (filtros de papel e situação,
+  suspender e reativar com motivo, sem suspender a própria conta), `vinculos` (intervenção em vínculos de qualquer
+  universidade), `vagas` (vagas abertas, encerrar, reabrir e excluir com motivo, candidaturas por vaga e perfil da
+  empresa) e `auditoria` (somente leitura). Rotas protegidas por sessão e por papel.
 - **Sessão:** token JWT em `sessionStorage` (decisão temporária do MVP; exposto a XSS), papel vindo do login e
   revalidado em `GET /users/me` a cada recarga. Um 401 em rota protegida limpa a sessão e volta ao login.
 - **Testes e build (sempre via Docker):**
