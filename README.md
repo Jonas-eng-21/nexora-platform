@@ -174,9 +174,13 @@ SPA Vue 3 em modo desenvolvimento (Vite com HMR), serviço `frontend` do Compose
 - **Hot reload:** `./nexora-web` é montado em `/app`; as dependências ficam no volume `nexora_frontend_node_modules`
   (o bind mount não as esconde). Após alterar `package.json`/`package-lock.json`, recrie o volume:
   `docker compose rm -sf frontend && docker volume rm nexora_frontend_node_modules && docker compose up --build -d`.
-- **Telas (US-34):** `/login`, `/cadastro` (estudante, empresa, universidade; ADMIN nunca) e uma área mínima por
-  papel (`/estudante`, `/empresa`, `/universidade`, `/admin`) que mostra os dados da conta. Rotas protegidas por
-  sessão e por papel; o painel completo de cada papel vem nas US-35 a US-38.
+- **Telas (US-34 e US-35):** `/login`, `/cadastro` (estudante, empresa, universidade; ADMIN nunca) e, para o
+  estudante, a área completa em `/estudante`: início com as tarefas pendentes, `perfil` (dados e competências do
+  catálogo), `curriculo` (projetos, formação, cursos, experiência, links, áreas de interesse e modelos de trabalho),
+  `vinculo` (solicitar vínculo, elegibilidade e histórico), `vagas` (recomendadas com score explicável ou todas, com
+  filtros na URL) e `vagas/:id` (detalhe, compatibilidade e candidatura por currículo do Nexora ou PDF de até 5 MiB),
+  e `candidaturas` (histórico, filtro por situação e currículo efetivamente enviado). Empresa, universidade e admin
+  ainda têm só uma área mínima com os dados da conta (US-36 a US-38). Rotas protegidas por sessão e por papel.
 - **Sessão:** token JWT em `sessionStorage` (decisão temporária do MVP; exposto a XSS), papel vindo do login e
   revalidado em `GET /users/me` a cada recarga. Um 401 em rota protegida limpa a sessão e volta ao login.
 - **Testes e build (sempre via Docker):**
