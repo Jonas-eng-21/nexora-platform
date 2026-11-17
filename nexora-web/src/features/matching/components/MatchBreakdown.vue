@@ -4,15 +4,26 @@ import ProgressBar from '@/shared/ui/ProgressBar.vue'
 import { CRITERION_LABEL, describeMatch } from '../scoreDisplay'
 import type { MatchResult } from '../types'
 
-const props = defineProps<{ match: MatchResult }>()
+const props = withDefaults(
+  defineProps<{ match: MatchResult; perspective?: 'student' | 'company'; headingTag?: 'h3' | 'h4' }>(),
+  { perspective: 'student', headingTag: 'h3' },
+)
 const view = computed(() => describeMatch(props.match))
 
-const skillGroups = computed(() => [
-  { title: 'Obrigatórias que você tem', items: props.match.matchedRequiredSkills },
-  { title: 'Obrigatórias que faltam', items: props.match.missingRequiredSkills },
-  { title: 'Desejáveis que você tem', items: props.match.matchedDesiredSkills },
-  { title: 'Desejáveis que faltam', items: props.match.missingDesiredSkills },
-])
+const TITLES = {
+  student: ['Obrigatórias que você tem', 'Obrigatórias que faltam', 'Desejáveis que você tem', 'Desejáveis que faltam'],
+  company: ['Obrigatórias atendidas pelo estudante', 'Obrigatórias ausentes no currículo', 'Desejáveis atendidas pelo estudante', 'Desejáveis ausentes no currículo'],
+} as const
+
+const skillGroups = computed(() => {
+  const t = TITLES[props.perspective]
+  return [
+    { title: t[0], items: props.match.matchedRequiredSkills },
+    { title: t[1], items: props.match.missingRequiredSkills },
+    { title: t[2], items: props.match.matchedDesiredSkills },
+    { title: t[3], items: props.match.missingDesiredSkills },
+  ]
+})
 </script>
 
 <template>
@@ -36,7 +47,7 @@ const skillGroups = computed(() => [
     <p v-if="view.state === 'ready'" class="text-sm text-muted">{{ view.typeNote }}</p>
 
     <div>
-      <h3 class="mb-2 font-semibold">Como a nota foi calculada</h3>
+      <component :is="headingTag" class="mb-2 font-semibold">Como a nota foi calculada</component>
       <ul class="space-y-4">
         <li v-for="c in match.criteria" :key="c.criterion">
           <div class="flex items-baseline justify-between gap-3">
@@ -52,7 +63,7 @@ const skillGroups = computed(() => [
 
     <div class="grid gap-4 sm:grid-cols-2">
       <section v-for="group in skillGroups" :key="group.title">
-        <h3 class="mb-1 text-sm font-semibold">{{ group.title }}</h3>
+        <component :is="headingTag" class="mb-1 text-sm font-semibold">{{ group.title }}</component>
         <p v-if="!group.items.length" class="text-sm text-muted">Nenhuma.</p>
         <ul v-else class="list-inside list-disc text-sm">
           <li v-for="name in group.items" :key="name">{{ name }}</li>

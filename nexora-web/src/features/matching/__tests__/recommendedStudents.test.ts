@@ -37,7 +37,7 @@ describe('RecommendedStudentsView', () => {
     const cards = wrapper.findAll('article')
     expect(cards).toHaveLength(2)
     const first = cards[0]!.text()
-    for (const text of ['Ana Souza', 'Sistemas de Informação', 'Garanhuns - PE', 'Quero atuar com backend.', 'Java, Spring Boot', 'Backend', '88/100', 'Alta afinidade', 'Compatibilidade de 88%', 'Obrigatórias que você tem', 'Docker']) expect(first).toContain(text)
+    for (const text of ['Ana Souza', 'Sistemas de Informação', 'Garanhuns - PE', 'Quero atuar com backend.', 'Java, Spring Boot', 'Backend', '88/100', 'Alta afinidade', 'Compatibilidade de 88%', 'Obrigatórias atendidas pelo estudante', 'Docker']) expect(first).toContain(text)
     expect(cards[1]!.text()).toContain('0/100')
   })
 

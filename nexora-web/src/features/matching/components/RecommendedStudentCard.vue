@@ -31,7 +31,7 @@ const { label: areaLabel } = useAreas()
     <p class="mt-3 text-sm">{{ item.match.summary }}</p>
     <details class="mt-3">
       <summary class="inline-flex min-h-11 cursor-pointer items-center text-sm font-medium text-primary underline underline-offset-4">Ver como a nota foi calculada</summary>
-      <div class="pt-3"><MatchBreakdown :match="item.match" /></div>
+      <div class="pt-3"><MatchBreakdown :match="item.match" perspective="company" heading-tag="h4" /></div>
     </details>
   </article>
 </template>

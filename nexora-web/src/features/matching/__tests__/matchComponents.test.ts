@@ -49,6 +49,22 @@ describe('MatchBreakdown', () => {
     expect(text).toContain('Não se aplica a esta vaga')
   })
 
+  it('uses third-person wording and h4 headings when shown to a company', () => {
+    const wrapper = mount(MatchBreakdown, { props: { match: base, perspective: 'company', headingTag: 'h4' } })
+    const text = wrapper.text()
+    expect(text).toContain('Obrigatórias atendidas pelo estudante')
+    expect(text).toContain('Obrigatórias ausentes no currículo')
+    expect(text).not.toMatch(/você/i)
+    expect(wrapper.findAll('h3')).toHaveLength(0)
+    expect(wrapper.findAll('h4').length).toBeGreaterThan(0)
+  })
+
+  it('keeps the student wording and h3 headings by default', () => {
+    const wrapper = mount(MatchBreakdown, { props: { match: base } })
+    expect(wrapper.text()).toContain('Obrigatórias que você tem')
+    expect(wrapper.findAll('h3').length).toBeGreaterThan(0)
+  })
+
   it('shows structured and semantic scores for HYBRID', () => {
     const text = mount(MatchBreakdown, { props: { match: { ...base, scoreType: 'HYBRID', score: 98, structuredScore: 100, semanticScore: 89 } } }).text()
     expect(text).toContain('Estruturado e semântico')
