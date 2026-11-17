@@ -204,3 +204,24 @@ SPA Vue 3 em modo desenvolvimento (Vite com HMR), serviço `frontend` do Compose
   iniciando, a tela mostra erro recuperável e basta tentar de novo; `npm audit` aponta 5 avisos moderados apenas na
   cadeia de teste (`@vue/test-utils` → `editorconfig` → `minimatch`), fora do bundle.
 - **Porta 5432 ocupada no host?** Defina `POSTGRES_PORT=5433` (ou outra) no `.env`.
+
+## Produção (`compose.prod.yaml`)
+
+Stack separada da de desenvolvimento: **só o serviço `web` (Nginx) publica portas** (80 redireciona para HTTPS; 443 serve a
+UI estática e `/api/`). Backend e PostgreSQL ficam apenas na rede interna. O backend sobe com `SPRING_PROFILES_ACTIVE=prod`
+(fixo no arquivo; Swagger e logs DEBUG desligados). O `compose.yaml` continua sendo o de desenvolvimento e agora publica
+backend e Vite **somente em `127.0.0.1`** (para outra interface: `BACKEND_BIND_ADDRESS` / `FRONTEND_BIND_ADDRESS`).
+
+```bash
+# 1. Arquivo de variáveis de produção (fora do git): POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, JWT_SECRET,
+#    TLS_CERT_DIR (e, opcionalmente, ADMIN_EMAIL, ADMIN_PASSWORD, JWT_EXPIRATION, HTTP_PORT, HTTPS_PORT).
+# 2. TLS_CERT_DIR deve conter fullchain.pem e privkey.pem de um certificado válido para o domínio.
+docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
+```
+
+- **TLS/HSTS:** os certificados reais não vão para o repositório nem para a imagem. O HSTS vem desligado em
+  `nexora-web/nginx/security-headers.conf`; habilite-o só depois de o domínio responder HTTPS válido de forma estável.
+- **CSP:** a política forte depende de ajustes no frontend (script inline do tema) e está fora desta etapa.
+- **Dados:** a stack usa o projeto Compose `nexora-prod`, com volumes próprios (`postgres_data`, `resumes_data`); faça backup
+  dos dois juntos. Nunca use `down -v` em produção.
+- **Migração:** a V20 adiciona `users.version` (concorrência otimista) de forma aditiva; contas existentes recebem 0.

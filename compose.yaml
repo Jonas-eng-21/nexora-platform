@@ -45,7 +45,8 @@ services:
       # PDFs de candidatura: volume nomeado, montado só no backend e fora de qualquer rota pública.
       - resumes_data:/data/resumes
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      # Somente loopback por padrão (stack de desenvolvimento). Para outra interface: BACKEND_BIND_ADDRESS.
+      - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8080}:8080"
 
   # SPA Vue 3 + Vite (modo desenvolvimento, HMR). O navegador fala só com o Vite; as chamadas /api
   # são encaminhadas pelo proxy do Vite ao backend pela rede do Compose, então não há CORS.
@@ -64,7 +65,8 @@ services:
       # Mantém as dependências instaladas na imagem; o bind mount não as esconde.
       - frontend_node_modules:/app/node_modules
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      # Somente loopback por padrão (stack de desenvolvimento). Para outra interface: FRONTEND_BIND_ADDRESS.
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-5173}:5173"
 
 volumes:
   postgres_data:
