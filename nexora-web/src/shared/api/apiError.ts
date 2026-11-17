@@ -59,6 +59,10 @@ const MESSAGES: Record<string, string> = {
   INVALID_SUSPENSION_STATE: 'Não foi possível restaurar o estado anterior desta candidatura.',
   STUDENT_ACCOUNT_NOT_ACTIVE: 'A conta do estudante não está ativa.',
   JOB_NOT_AVAILABLE: 'A vaga precisa estar aberta para reativar candidaturas.',
+  AFFILIATION_ALREADY_DECIDED: 'Esta solicitação já foi analisada, talvez por outra sessão. Atualize a lista para ver a decisão atual.',
+  AFFILIATION_NOT_APPROVED: 'Só é possível revogar um vínculo aprovado. Atualize a lista para ver a situação atual.',
+  AFFILIATION_NOT_FOUND: 'Solicitação de vínculo não encontrada para a sua universidade.',
+  UNIVERSITY_PROFILE_NOT_FOUND: 'O perfil institucional não foi encontrado para esta conta.',
   INTERNAL_ERROR: 'O servidor encontrou um erro inesperado. Tente novamente em instantes.',
   NETWORK_ERROR: 'Não foi possível falar com o servidor. Verifique sua conexão e tente novamente.',
   SERVICE_UNAVAILABLE:
