@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Cor semântica fixa + texto sempre presente: a cor nunca é o único sinal.
-defineProps<{ tone: 'success' | 'warning' | 'danger' }>()
+defineProps<{ tone: 'success' | 'warning' | 'danger' | 'neutral' }>()
 </script>
 
 <template>
@@ -10,6 +10,7 @@ defineProps<{ tone: 'success' | 'warning' | 'danger' }>()
       'border-success bg-success-soft text-success': tone === 'success',
       'border-warning bg-warning-soft text-warning': tone === 'warning',
       'border-danger bg-danger-soft text-danger': tone === 'danger',
+      'border-line-strong bg-surface text-fg': tone === 'neutral',
     }"
   >
     <slot />

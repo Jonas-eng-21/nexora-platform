@@ -12,9 +12,11 @@ const props = withDefaults(
     hint?: string
     autocomplete?: string
     required?: boolean
+    /** Falso em buscas e filtros, onde "(opcional)" não faz sentido. */
+    showOptional?: boolean
     maxlength?: number
   }>(),
-  { name: undefined, type: 'text', multiline: false, error: '', hint: '', autocomplete: undefined, required: false, maxlength: undefined },
+  { name: undefined, type: 'text', multiline: false, error: '', hint: '', autocomplete: undefined, required: false, showOptional: true, maxlength: undefined },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
@@ -39,7 +41,7 @@ function onInput(event: Event) {
   <div>
     <label :for="id" class="mb-1.5 block text-sm font-medium">
       {{ label }}
-      <span v-if="!required" class="font-normal text-muted"> (opcional)</span>
+      <span v-if="!required && showOptional" class="font-normal text-muted"> (opcional)</span>
     </label>
     <div class="relative">
       <textarea
