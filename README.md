@@ -179,8 +179,12 @@ SPA Vue 3 em modo desenvolvimento (Vite com HMR), serviço `frontend` do Compose
   catálogo), `curriculo` (projetos, formação, cursos, experiência, links, áreas de interesse e modelos de trabalho),
   `vinculo` (solicitar vínculo, elegibilidade e histórico), `vagas` (recomendadas com score explicável ou todas, com
   filtros na URL) e `vagas/:id` (detalhe, compatibilidade e candidatura por currículo do Nexora ou PDF de até 5 MiB),
-  e `candidaturas` (histórico, filtro por situação e currículo efetivamente enviado). Empresa, universidade e admin
-  ainda têm só uma área mínima com os dados da conta (US-36 a US-38). Rotas protegidas por sessão e por papel.
+  e `candidaturas` (histórico, filtro por situação e currículo efetivamente enviado). Para a empresa, a área completa
+  em `/empresa`: início com as vagas abertas e as candidaturas aguardando análise, `perfil`, `vagas` (lista com filtro
+  por situação, criar, editar, encerrar, reabrir e excluir com confirmação), `vagas/:id/candidaturas` (documento
+  enviado, decisão com motivo, reativação explícita) e `vagas/:id/recomendados` (estudantes validados com score
+  explicável, sem dados privados). Universidade e admin ainda têm só uma área mínima com os dados da conta (US-37 e
+  US-38). Rotas protegidas por sessão e por papel.
 - **Sessão:** token JWT em `sessionStorage` (decisão temporária do MVP; exposto a XSS), papel vindo do login e
   revalidado em `GET /users/me` a cada recarga. Um 401 em rota protegida limpa a sessão e volta ao login.
 - **Testes e build (sempre via Docker):**
