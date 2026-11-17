@@ -11,7 +11,6 @@ declare module 'vue-router' {
   }
 }
 
-const AccountHomeView = () => import('@/features/authentication/views/AccountHomeView.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'root', component: { render: () => null }, meta: { requiresAuth: true } },
@@ -66,7 +65,23 @@ const routes: RouteRecordRaw[] = [
           { path: 'perfil', name: 'university-profile', component: () => import('@/features/universities/views/UniversityProfileView.vue'), meta: { title: 'Perfil institucional' } },
         ],
       },
-      { path: 'admin', name: 'admin-home', component: AccountHomeView, meta: { requiresAuth: true, role: 'ADMIN', title: 'Área do administrador' } },
+      {
+        path: 'admin',
+        component: () => import('@/app/layouts/AdminLayout.vue'),
+        meta: { requiresAuth: true, role: 'ADMIN' },
+        children: [
+          { path: '', name: 'admin-home', component: () => import('@/features/administration/views/AdminHomeView.vue'), meta: { title: 'Início' } },
+          { path: 'universidades', name: 'admin-universities', component: () => import('@/features/administration/views/AdminUniversitiesView.vue'), meta: { title: 'Universidades' } },
+          { path: 'usuarios', name: 'admin-users', component: () => import('@/features/administration/views/AdminUsersView.vue'), meta: { title: 'Contas' } },
+          { path: 'usuarios/:userId', name: 'admin-user', component: () => import('@/features/administration/views/AdminUserDetailView.vue'), meta: { title: 'Conta' } },
+          { path: 'vinculos', name: 'admin-affiliations', component: () => import('@/features/administration/views/AdminAffiliationsView.vue'), meta: { title: 'Vínculos acadêmicos' } },
+          { path: 'vagas', name: 'admin-jobs', component: () => import('@/features/administration/views/AdminJobsView.vue'), meta: { title: 'Vagas' } },
+          { path: 'vagas/:jobId', name: 'admin-job', component: () => import('@/features/administration/views/AdminJobDetailView.vue'), meta: { title: 'Vaga' } },
+          { path: 'vagas/:jobId/candidaturas', name: 'admin-job-applications', component: () => import('@/features/administration/views/AdminJobApplicationsView.vue'), meta: { title: 'Candidaturas da vaga' } },
+          { path: 'empresas/:companyId', name: 'admin-company', component: () => import('@/features/administration/views/AdminCompanyView.vue'), meta: { title: 'Perfil da empresa' } },
+          { path: 'auditoria', name: 'admin-audit', component: () => import('@/features/administration/views/AdminAuditView.vue'), meta: { title: 'Auditoria' } },
+        ],
+      },
       { path: 'acesso-negado', name: 'forbidden', component: () => import('@/app/views/ForbiddenView.vue'), meta: { requiresAuth: true, title: 'Acesso negado' } },
     ],
   },

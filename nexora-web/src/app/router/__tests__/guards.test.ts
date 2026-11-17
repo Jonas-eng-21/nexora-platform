@@ -104,6 +104,27 @@ describe('route guards', () => {
     expect((await navigate('/empresa/vagas')).name).toBe('forbidden')
   })
 
+  const ADMIN_PATHS = ['/admin', '/admin/universidades', '/admin/usuarios', '/admin/usuarios/abc', '/admin/vinculos', '/admin/vagas', '/admin/vagas/abc', '/admin/vagas/abc/candidaturas', '/admin/empresas/abc', '/admin/auditoria']
+  it.each(ADMIN_PATHS)('isolates %s: students, companies and universities are kept out', async (path) => {
+    for (const role of ['STUDENT', 'COMPANY', 'UNIVERSITY']) {
+      tokenStorage.set('tok')
+      vi.mocked(authApi.me).mockResolvedValue(me(role) as never)
+      expect((await navigate(path)).name).toBe('forbidden')
+    }
+  })
+
+  it.each(ADMIN_PATHS)('sends a visitor from %s to login', async (path) => {
+    expect((await navigate(path)).name).toBe('login')
+  })
+
+  it('lets an admin open the admin area but not the other roles\' areas', async () => {
+    tokenStorage.set('tok')
+    vi.mocked(authApi.me).mockResolvedValue(me('ADMIN') as never)
+    expect((await navigate('/admin/auditoria')).name).toBe('admin-audit')
+    expect((await navigate('/admin/vagas/abc/candidaturas')).name).toBe('admin-job-applications')
+    for (const path of ['/estudante', '/empresa', '/universidade']) expect((await navigate(path)).name).toBe('forbidden')
+  })
+
   it('lets a student open the whole student area', async () => {
     tokenStorage.set('tok')
     vi.mocked(authApi.me).mockResolvedValue(me('STUDENT') as never)
