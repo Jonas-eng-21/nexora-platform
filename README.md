@@ -11,11 +11,11 @@ Java, Maven, PostgreSQL e Node.js rodam **somente em containers**. No host basta
 
 ### Estrutura
 ```
-compose.yaml        # orquestração (postgres + backend; frontend no futuro)
+compose.yaml        # orquestração (postgres + backend + frontend)
 compose.dev.yaml    # override de desenvolvimento (código montado, hot reload)
 .env / .env.example # variáveis (.env não é versionado)
 nexora-api/         # backend Spring Boot (Dockerfile multi-stage: Maven+JDK21 -> JRE21)
-frontend/           # futuro (Vue 3 + TS + Vite), com Dockerfile próprio
+nexora-web/         # frontend Vue 3 + TypeScript + Vite + Tailwind v4 + Pinia + Vue Router (Dockerfile próprio)
 ```
 
 ### Variáveis (`.env`)
@@ -45,7 +45,8 @@ cp .env.example .env   # depois edite POSTGRES_PASSWORD e JWT_SECRET
 ```bash
 docker compose up --build -d
 ```
-API em http://localhost:8080. Rotas protegidas exigem `Authorization: Bearer <token>`; sem token a resposta é 401
+**Um único comando sobe os três serviços** (`postgres`, `backend` e `frontend`), sem instalar Node, npm, Java ou Maven
+no host. Aplicação em **http://localhost:5173** (frontend) e API em http://localhost:8080. Rotas protegidas exigem `Authorization: Bearer <token>`; sem token a resposta é 401
 em `application/problem+json`.
 
 ### Matching semântico com Gemini
@@ -164,6 +165,27 @@ guarda os metadados, então **os dois precisam de backup juntos**; `docker compo
 o volume só serve enquanto houver uma única instância com disco durável; caso contrário, troque
 `ResumeFileStorage` por um serviço privado de objetos antes do deploy.
 
-### Frontend (futuro)
-Criar `frontend/` com `Dockerfile` (build Node -> Nginx) e adicionar um serviço `frontend` em `compose.yaml`
-(`build: ./frontend`, `depends_on: backend`). Nada mais precisa mudar.
+### Frontend (`nexora-web/`)
+SPA Vue 3 em modo desenvolvimento (Vite com HMR), serviço `frontend` do Compose, porta `${FRONTEND_PORT:-5173}`.
+
+- **Proxy:** o navegador só fala com o Vite. Chamadas a `/api/*` são encaminhadas pelo proxy do Vite a
+  `http://backend:8080` (variável `API_PROXY_TARGET`) pela rede do Compose; por isso **não há CORS** nem URL do
+  backend no bundle. O cliente Axios usa `baseURL: '/api/v1'`. Não há segredos no frontend (`VITE_*` seria público).
+- **Hot reload:** `./nexora-web` é montado em `/app`; as dependências ficam no volume `nexora_frontend_node_modules`
+  (o bind mount não as esconde). Após alterar `package.json`/`package-lock.json`, recrie o volume:
+  `docker compose rm -sf frontend && docker volume rm nexora_frontend_node_modules && docker compose up --build -d`.
+- **Telas (US-34):** `/login`, `/cadastro` (estudante, empresa, universidade; ADMIN nunca) e uma área mínima por
+  papel (`/estudante`, `/empresa`, `/universidade`, `/admin`) que mostra os dados da conta. Rotas protegidas por
+  sessão e por papel; o painel completo de cada papel vem nas US-35 a US-38.
+- **Sessão:** token JWT em `sessionStorage` (decisão temporária do MVP; exposto a XSS), papel vindo do login e
+  revalidado em `GET /users/me` a cada recarga. Um 401 em rota protegida limpa a sessão e volta ao login.
+- **Testes e build (sempre via Docker):**
+  ```bash
+  docker compose exec frontend npm test          # Vitest + Vue Test Utils
+  docker compose exec frontend npm run build     # vue-tsc + build de produção
+  ```
+  Sem o serviço no ar: `docker compose run --rm --no-deps frontend npm test`.
+- **Limitações:** imagem de desenvolvimento (sem Nginx/HTTPS, que é escopo da US-39); se a API ainda estiver
+  iniciando, a tela mostra erro recuperável e basta tentar de novo; `npm audit` aponta 5 avisos moderados apenas na
+  cadeia de teste (`@vue/test-utils` → `editorconfig` → `minimatch`), fora do bundle.
+- **Porta 5432 ocupada no host?** Defina `POSTGRES_PORT=5433` (ou outra) no `.env`.
