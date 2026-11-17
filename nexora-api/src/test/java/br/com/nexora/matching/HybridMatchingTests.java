@@ -3,11 +3,13 @@ package br.com.nexora.matching;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -24,6 +26,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -285,6 +288,31 @@ class HybridMatchingTests {
 		assertThat(sent).contains("API de finanças");
 		assertThat(sent).doesNotContain(student.getEmail()).doesNotContain("github.com").doesNotContain("linkedin")
 				.doesNotContain("Ana Souza").doesNotContain("%PDF");
+	}
+
+	@Test
+	void applyingWithAPdfNeverFeedsTheProviderNorChangesTheScore() throws Exception {
+		User student = createStudent("APIs REST com Java", "[\"BACKEND\"]", java);
+		makeEligible(student);
+		String before = as(student, get(MATCH + jobId)).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		int textsBefore = provider.totalTexts();
+
+		byte[] pdf = "%PDF-1.4\nMARCADOR-SECRETO-DO-PDF-98765\n%%EOF".getBytes(StandardCharsets.UTF_8);
+		mockMvc.perform(multipart("/api/v1/jobs/" + jobId + "/applications")
+				.file(new MockMultipartFile("file", "cv.pdf", "application/pdf", pdf))
+				.param("resumeType", "PDF")
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenService.issue(student)))
+				.andExpect(status().isCreated());
+
+		String after = as(student, get(MATCH + jobId)).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		assertThat((int) JsonPath.read(after, "$.match.score")).isEqualTo((int) JsonPath.read(before, "$.match.score"));
+		assertThat((int) JsonPath.read(after, "$.match.semanticScore"))
+				.isEqualTo((int) JsonPath.read(before, "$.match.semanticScore"));
+		assertThat(provider.totalTexts()).isEqualTo(textsBefore); // nada novo foi embutido
+		assertThat(provider.calls().stream().flatMap(List::stream).collect(Collectors.joining("\n")))
+				.doesNotContain("MARCADOR-SECRETO");
 	}
 
 	@Test
