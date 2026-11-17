@@ -53,6 +53,24 @@ describe('route guards', () => {
     expect((await navigate('/cadastro')).path).toBe('/admin')
   })
 
+  it.each(['/estudante', '/estudante/perfil', '/estudante/curriculo', '/estudante/vinculo', '/estudante/vagas', '/estudante/vagas/abc', '/estudante/candidaturas'])(
+    'isolates %s: only students get in', async (path) => {
+      tokenStorage.set('tok')
+      vi.mocked(authApi.me).mockResolvedValue(me('COMPANY') as never)
+      expect((await navigate(path)).name).toBe('forbidden')
+    })
+
+  it.each(['/estudante/perfil', '/estudante/vagas/abc', '/estudante/candidaturas'])('sends a visitor from %s to login', async (path) => {
+    expect((await navigate(path)).name).toBe('login')
+  })
+
+  it('lets a student open the whole student area', async () => {
+    tokenStorage.set('tok')
+    vi.mocked(authApi.me).mockResolvedValue(me('STUDENT') as never)
+    expect((await navigate('/estudante/vagas/abc')).name).toBe('student-job')
+    expect((await navigate('/estudante/candidaturas')).name).toBe('student-applications')
+  })
+
   it('shows a not-found page for unknown routes', async () => {
     expect((await navigate('/nao-existe')).name).toBe('not-found')
   })

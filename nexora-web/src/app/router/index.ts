@@ -28,7 +28,20 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/app/layouts/AppShell.vue'),
     meta: { requiresAuth: true },
     children: [
-      { path: 'estudante', name: 'student-home', component: AccountHomeView, meta: { requiresAuth: true, role: 'STUDENT', title: 'Área do estudante' } },
+      {
+        path: 'estudante',
+        component: () => import('@/app/layouts/StudentLayout.vue'),
+        meta: { requiresAuth: true, role: 'STUDENT' },
+        children: [
+          { path: '', name: 'student-home', component: () => import('@/features/students/views/StudentHomeView.vue'), meta: { title: 'Início' } },
+          { path: 'perfil', name: 'student-profile', component: () => import('@/features/students/views/ProfileView.vue'), meta: { title: 'Perfil' } },
+          { path: 'curriculo', name: 'student-resume', component: () => import('@/features/students/views/ResumeView.vue'), meta: { title: 'Currículo' } },
+          { path: 'vinculo', name: 'student-affiliation', component: () => import('@/features/universities/views/AffiliationView.vue'), meta: { title: 'Vínculo acadêmico' } },
+          { path: 'vagas', name: 'student-jobs', component: () => import('@/features/jobs/views/JobsView.vue'), meta: { title: 'Vagas' } },
+          { path: 'vagas/:jobId', name: 'student-job', component: () => import('@/features/jobs/views/JobDetailView.vue'), meta: { title: 'Detalhe da vaga' } },
+          { path: 'candidaturas', name: 'student-applications', component: () => import('@/features/applications/views/ApplicationsView.vue'), meta: { title: 'Candidaturas' } },
+        ],
+      },
       { path: 'empresa', name: 'company-home', component: AccountHomeView, meta: { requiresAuth: true, role: 'COMPANY', title: 'Área da empresa' } },
       { path: 'universidade', name: 'university-home', component: AccountHomeView, meta: { requiresAuth: true, role: 'UNIVERSITY', title: 'Área da universidade' } },
       { path: 'admin', name: 'admin-home', component: AccountHomeView, meta: { requiresAuth: true, role: 'ADMIN', title: 'Área do administrador' } },
