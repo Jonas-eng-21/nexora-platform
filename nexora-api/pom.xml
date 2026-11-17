@@ -29,6 +29,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<springdoc.version>3.2.0</springdoc.version>
+		<google-genai.version>2.1.0</google-genai.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -54,6 +55,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<!-- SDK oficial do Gemini, usado só para embeddings de texto (GeminiEmbeddingProvider). -->
+		<dependency>
+			<groupId>com.google.genai</groupId>
+			<artifactId>google-genai</artifactId>
+			<version>${google-genai.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>

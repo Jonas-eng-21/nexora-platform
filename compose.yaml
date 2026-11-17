@@ -36,6 +36,11 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-60m}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Matching semântico (Gemini). Desligado por padrão; a chave só existe no backend, nunca em build args.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+      GEMINI_EMBEDDING_DIMENSIONS: ${GEMINI_EMBEDDING_DIMENSIONS:-768}
+      GEMINI_MATCHING_ENABLED: ${GEMINI_MATCHING_ENABLED:-false}
     volumes:
       # PDFs de candidatura: volume nomeado, montado só no backend e fora de qualquer rota pública.
       - resumes_data:/data/resumes

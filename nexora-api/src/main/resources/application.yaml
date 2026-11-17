@@ -38,6 +38,23 @@ nexora:
       desired-skills: 20
       interests: 20
       work-model-and-location: 15
+    # Matching semântico (embeddings do Gemini) combinado ao score estruturado. Desligado por padrão: sem a flag,
+    # o matching estruturado funciona sozinho e a aplicação sobe sem chave. A chave (GEMINI_API_KEY) é lida só
+    # pelo provedor e nunca vai para propriedades, logs ou respostas.
+    semantic:
+      enabled: ${GEMINI_MATCHING_ENABLED:false}
+      model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
+      dimensions: ${GEMINI_EMBEDDING_DIMENSIONS:768}
+      # Peso do score semântico no híbrido (pontos percentuais): híbrido = 80% estruturado + 20% semântico.
+      # Hipótese técnica a validar, não resultado científico.
+      semantic-weight: 20
+      timeout: 10s
+      max-attempts: 2
+      retry-backoff: 500ms
+      # Teto de textos novos enviados ao provedor por requisição de recomendação (o resto sai como fallback).
+      max-new-embeddings-per-request: 100
+      # Textos maiores que isto são cortados antes do envio.
+      max-text-length: 4000
   storage:
     # Pasta privada dos PDFs de candidatura. No Docker é um volume nomeado montado só no backend;
     # nunca servida como recurso estático. Precisa ser durável (volume persistente ou storage privado).
