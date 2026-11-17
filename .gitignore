@@ -7,3 +7,6 @@
 # Antigravity Skills locais
 .agents/
 
+# Claude Code: configuração local (plugins/skills), não vai para o GitHub
+.claude/
+
