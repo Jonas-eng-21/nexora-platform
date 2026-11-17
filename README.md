@@ -28,6 +28,9 @@ frontend/           # futuro (Vue 3 + TS + Vite), com Dockerfile próprio
 | `JWT_SECRET` | Segredo de assinatura do JWT (HS256), mínimo de 32 caracteres; obrigatório. Gere com `openssl rand -base64 48` |
 | `JWT_EXPIRATION` | Validade do token, padrão `60m` |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Administrador inicial (opcional). Senha com no mínimo 12 caracteres |
+| `GEMINI_MATCHING_ENABLED` | Liga o matching semântico (score híbrido). Padrão `false` |
+| `GEMINI_API_KEY` | Chave da Gemini API. Só é exigida com a flag ligada; fica apenas no `.env` local |
+| `GEMINI_EMBEDDING_MODEL` / `GEMINI_EMBEDDING_DIMENSIONS` | Modelo e dimensão dos embeddings, padrão `gemini-embedding-001` e `768` |
 
 ### Administrador inicial
 Não existe cadastro público de administrador. Com `ADMIN_EMAIL` e `ADMIN_PASSWORD` definidos no `.env`, o backend
@@ -44,6 +47,58 @@ docker compose up --build -d
 ```
 API em http://localhost:8080. Rotas protegidas exigem `Authorization: Bearer <token>`; sem token a resposta é 401
 em `application/problem+json`.
+
+### Matching semântico com Gemini
+O matching estruturado (competências, interesses, modelo e localização) continua sendo a base do score. Com o
+matching semântico ligado, o backend também compara, por **embeddings de texto** do Gemini, o currículo-base do
+estudante com a vaga. A IA fornece só vetores: o **cosseno e o score final são calculados pelo backend**, nunca
+por uma nota de LLM.
+
+- Score semântico: `100 × clamp(cosseno, 0, 1)`. Score híbrido: `round(0,80 × estruturado + 0,20 × semântico)`.
+  Os pesos (`nexora.matching.semantic.semantic-weight`, padrão 20) são **hipóteses de implementação**, não validação
+  científica; a POC mostrou que o score semântico separa pouco (ver `context/andamento.md`, seção 9).
+- Só o **currículo-base** e a vaga entram nos textos enviados ao provedor (resumo, curso, competências do catálogo,
+  experiências, projetos, cursos, interesses; na vaga, título, descrição, área, competências e modalidade). **Nunca**
+  e-mail, links, nomes, instituição, localização, PDF ou snapshot de candidatura.
+
+**Configuração (somente no `.env`, ignorado pelo Git; a chave nunca vai para imagem, build args ou logs):**
+```dotenv
+GEMINI_MATCHING_ENABLED=false     # padrão; true liga o score híbrido
+GEMINI_API_KEY=                   # obrigatória só com a flag ligada (https://aistudio.google.com/apikey)
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+GEMINI_EMBEDDING_DIMENSIONS=768
+```
+Desligada, a aplicação sobe **sem chave**, não faz chamada externa nem consulta o cache, e todas as respostas saem
+com `scoreType=STRUCTURED`. Ligada e sem chave, a aplicação **não sobe** (falha explícita). Para ligar ou desligar,
+edite a flag no `.env` e rode `docker compose up -d backend` (o `.env` é lido na criação do container).
+
+**Resposta de matching (campos aditivos; nada foi removido ou renomeado):**
+```json
+{ "score": 98, "scoreType": "HYBRID", "structuredScore": 100, "semanticScore": 89,
+  "algorithmVersion": "v1", "criteria": [], "summary": "..." }
+```
+| `scoreType` | Significado |
+|---|---|
+| `STRUCTURED` | Só critérios estruturados (flag desligada, ou estudante sem competência do catálogo nem área de interesse). `semanticScore` é nulo |
+| `HYBRID` | Estruturado combinado com a similaridade semântica |
+| `FALLBACK` | Semântica ligada, mas indisponível para o par (falha, timeout, limite, resposta inválida): vale o estruturado, `semanticScore` nulo |
+
+**Custo e cache.** Os embeddings de uma lista são pedidos **em lote** (uma chamada por requisição, até 100 textos) e
+guardados na tabela `text_embeddings` (migração V19), com chave por hash do texto, modelo e dimensão: só textos
+novos ou alterados vão ao Gemini. No máximo 100 textos novos por requisição; o excedente sai como `FALLBACK`. Timeout
+de 10 s e 2 tentativas, só para erros transitórios (429, 5xx, rede).
+
+**Testes sem consumir o Gemini.** Toda a suíte usa um provedor falso e roda com a flag desligada:
+`nexora-test` (ou `scripts/nexora-test`), no Docker. Nenhum teste chama a API real.
+
+**Limitações e cuidados.**
+- A chamada ao provedor ocorre dentro da transação de leitura da requisição (segura uma conexão do pool por até 10 s).
+- O cache não expira (linhas antigas ficam) e, com cache frio e muitas vagas, a primeira lista pode misturar
+  `HYBRID` e `FALLBACK`.
+- Os pesos 80/20 e a normalização do cosseno não foram validados; nenhuma superioridade do híbrido foi demonstrada.
+- Cotas, preços e termos de uso de dados da Gemini API valem para a chave usada: a assinatura pessoal Google AI Pro
+  **não** equivale à cota paga da API. Para dados reais de estudantes, revise os termos (inclusive da camada gratuita)
+  e o faturamento antes de ligar a flag; nos testes, use só dados fictícios.
 
 ### Documentação da API (Swagger)
 Disponível **somente no perfil `dev`** (desligada nos demais perfis):
