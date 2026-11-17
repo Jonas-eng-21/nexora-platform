@@ -76,6 +76,9 @@ docker run --rm --network nexora_default -v "$PWD/nexora-api:/w" -v nexora_m2:/r
   -e SPRING_DATASOURCE_USERNAME=$POSTGRES_USER -e SPRING_DATASOURCE_PASSWORD=$POSTGRES_PASSWORD \
   maven:3.9-eclipse-temurin-21 mvn test
 ```
+Atalho: `scripts/nexora-test` faz tudo isso (sobe o Postgres, cria o `nexora_test` se faltar e roda a suíte
+completa no Docker). Argumentos extras vão para o Maven, por exemplo `nexora-test -Dtest=NomeDaClasse`. Para usá-lo
+de qualquer pasta, crie um link no `PATH`: `ln -s "$PWD/scripts/nexora-test" ~/.local/bin/nexora-test`.
 O build da imagem usa `-DskipTests` para não depender do banco.
 
 ### Modo desenvolvimento (hot reload)

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# nexora-test — roda toda a suíte de testes do backend no Docker, contra o banco nexora_test.
+#
+# Uso:  nexora-test                       # suíte completa
+#       nexora-test -Dtest=NomeDaClasse   # argumentos extras vão direto para o "mvn test"
+#
+# Usa o Postgres do Compose (sobe se estiver parado), cria o banco nexora_test se faltar e não toca no banco de
+# desenvolvimento nem no backend em execução. O log completo fica em /tmp/nexora-test.log.
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+cd "$ROOT"
+LOG=/tmp/nexora-test.log
+CONTAINER=nexora-maven-test
+
+[ -f .env ] || { echo "nexora-test: .env não encontrado em $ROOT (copie de .env.example)." >&2; exit 2; }
+docker info >/dev/null 2>&1 || { echo "nexora-test: o Docker não está respondendo." >&2; exit 2; }
+set -a; . ./.env; set +a
+
+# Execução anterior interrompida deixaria um container disputando o mesmo banco: remove antes de começar.
+docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+trap 'docker rm -f "$CONTAINER" >/dev/null 2>&1 || true' EXIT INT TERM
+
+echo ">> Subindo o PostgreSQL do Compose (se necessário)..."
+docker compose up -d postgres >/dev/null 2>&1 || { echo "nexora-test: não consegui subir o postgres." >&2; exit 2; }
+for _ in $(seq 1 60); do
+  [ "$(docker inspect -f '{{.State.Health.Status}}' nexora-postgres-1 2>/dev/null)" = healthy ] && break
+  sleep 1
+done
+[ "$(docker inspect -f '{{.State.Health.Status}}' nexora-postgres-1 2>/dev/null)" = healthy ] \
+  || { echo "nexora-test: o postgres não ficou saudável." >&2; exit 2; }
+
+if ! docker compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres -tAc \
+    "select 1 from pg_database where datname='nexora_test'" | grep -q 1; then
+  echo ">> Criando o banco nexora_test..."
+  docker compose exec -T postgres createdb -U "$POSTGRES_USER" nexora_test
+fi
+
+echo ">> Rodando os testes no Docker (log completo: $LOG)..."
+START=$(date +%s)
+docker run --rm --name "$CONTAINER" --network nexora_default \
+  -v "$ROOT/nexora-api:/w" -v nexora_m2:/root/.m2 -w /w \
+  -e MAVEN_OPTS="-Xmx512m" \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/nexora_test \
+  -e SPRING_DATASOURCE_USERNAME="$POSTGRES_USER" -e SPRING_DATASOURCE_PASSWORD="$POSTGRES_PASSWORD" \
+  -e JWT_SECRET="$JWT_SECRET" \
+  maven:3.9-eclipse-temurin-21 mvn -B test "$@" 2>&1 | tee "$LOG" \
+  | grep --line-buffered -E '^\[(INFO|WARNING|ERROR)\] (Tests run:|Running |BUILD|Total time|FAIL|.*(ERROR|FAILURE)!)|^\[ERROR\]'
+STATUS=${PIPESTATUS[0]}
+
+echo
+grep -E '^\[(INFO|ERROR)\] Tests run:.*[0-9]$' "$LOG" | tail -1
+echo ">> $([ "$STATUS" -eq 0 ] && echo 'TESTES OK' || echo 'FALHOU') em $(( $(date +%s) - START ))s (saída $STATUS)"
+exit "$STATUS"
