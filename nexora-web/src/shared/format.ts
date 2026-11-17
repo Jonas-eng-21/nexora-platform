@@ -22,3 +22,6 @@ export function formatFileSize(bytes: number): string {
     ? `${(bytes / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} KiB`
     : formatMiB(bytes)
 }
+
+const dateTimeFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+export const formatDateTime = (iso: string): string => dateTimeFormat.format(new Date(iso))
