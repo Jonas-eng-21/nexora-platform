@@ -1,7 +1,7 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    variant?: 'primary' | 'secondary'
+    variant?: 'primary' | 'secondary' | 'danger'
     type?: 'button' | 'submit'
     loading?: boolean
     block?: boolean
@@ -18,9 +18,9 @@ withDefaults(
     class="inline-flex min-h-11 items-center justify-center gap-2 rounded-control px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70"
     :class="[
       block ? 'w-full' : '',
-      variant === 'primary'
-        ? 'bg-primary text-on-primary hover:bg-primary-hover'
-        : 'border border-line-strong bg-surface text-fg hover:bg-primary-soft',
+      variant === 'primary' ? 'bg-primary text-on-primary hover:bg-primary-hover' : '',
+      variant === 'secondary' ? 'border border-line-strong bg-surface text-fg hover:bg-primary-soft' : '',
+      variant === 'danger' ? 'bg-danger text-canvas hover:opacity-90' : '',
     ]"
   >
     <span
