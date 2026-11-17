@@ -63,6 +63,12 @@ const MESSAGES: Record<string, string> = {
   AFFILIATION_NOT_APPROVED: 'Só é possível revogar um vínculo aprovado. Atualize a lista para ver a situação atual.',
   AFFILIATION_NOT_FOUND: 'Solicitação de vínculo não encontrada para a sua universidade.',
   UNIVERSITY_PROFILE_NOT_FOUND: 'O perfil institucional não foi encontrado para esta conta.',
+  UNIVERSITY_ALREADY_DECIDED: 'Este cadastro de universidade já foi analisado. Atualize a lista para ver a decisão atual.',
+  UNIVERSITY_NOT_FOUND: 'Universidade não encontrada.',
+  USER_NOT_FOUND: 'Conta não encontrada.',
+  COMPANY_NOT_FOUND: 'Empresa não encontrada.',
+  CANNOT_SUSPEND_SELF: 'Você não pode suspender a própria conta.',
+  INVALID_STATUS_TRANSITION: 'Esta mudança não é permitida para a situação atual da conta. Atualize a lista para ver a situação atual.',
   INTERNAL_ERROR: 'O servidor encontrou um erro inesperado. Tente novamente em instantes.',
   NETWORK_ERROR: 'Não foi possível falar com o servidor. Verifique sua conexão e tente novamente.',
   SERVICE_UNAVAILABLE:

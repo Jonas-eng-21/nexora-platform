@@ -6,8 +6,18 @@ const COMPANY_MESSAGES: Record<string, string> = {
   STUDENT_NOT_VALIDATED: 'O estudante não tem, no momento, vínculo acadêmico aprovado e vigente. Aguarde a revalidação.',
 }
 
+export const ADMIN_MESSAGES: Record<string, string> = {
+  JOB_NOT_FOUND: 'Vaga não encontrada ou excluída.',
+  STUDENT_NOT_VALIDATED: COMPANY_MESSAGES.STUDENT_NOT_VALIDATED!,
+}
+
 /** Reescreve a mensagem de erros cujo texto padrão é voltado ao estudante. */
 export function forCompany(error: ApiError | null): ApiError | null {
   if (!error || !(error.code in COMPANY_MESSAGES)) return error
   return new ApiError(error.status, error.code, COMPANY_MESSAGES[error.code]!, error.fieldErrors)
+}
+
+export function forAdmin(error: ApiError | null): ApiError | null {
+  if (!error || !(error.code in ADMIN_MESSAGES)) return error
+  return new ApiError(error.status, error.code, ADMIN_MESSAGES[error.code]!, error.fieldErrors)
 }

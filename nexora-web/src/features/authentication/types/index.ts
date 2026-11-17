@@ -1,5 +1,5 @@
 export type UserRole = 'STUDENT' | 'COMPANY' | 'UNIVERSITY' | 'ADMIN'
-export type AccountStatus = 'ACTIVE' | 'PENDING_APPROVAL' | 'SUSPENDED'
+export type AccountStatus = 'ACTIVE' | 'PENDING_APPROVAL' | 'SUSPENDED' | 'REJECTED'
 export type PublicRole = Exclude<UserRole, 'ADMIN'>
 
 export interface LoginRequest {

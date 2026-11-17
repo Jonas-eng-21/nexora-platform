@@ -18,10 +18,12 @@ export const STATUS_LABEL: Record<AccountStatus, string> = {
   ACTIVE: 'Ativa',
   PENDING_APPROVAL: 'Aguardando aprovação',
   SUSPENDED: 'Suspensa',
+  REJECTED: 'Rejeitada',
 }
 
 export const STATUS_TONE: Record<AccountStatus, 'success' | 'warning' | 'danger'> = {
   ACTIVE: 'success',
   PENDING_APPROVAL: 'warning',
   SUSPENDED: 'danger',
+  REJECTED: 'danger',
 }
