@@ -31,10 +31,21 @@ export const CRITERION_LABEL: Record<MatchCriterion, string> = {
   WORK_MODEL_AND_LOCATION: 'Modelo de trabalho e localização',
 }
 
+export const bandFor = (score: number): string =>
+  score >= 70 ? 'Alta afinidade' : score >= 40 ? 'Afinidade média' : 'Baixa afinidade'
+
+export type NumericScoreView = { state: 'insufficient' } | { state: 'ready'; score: number; bandLabel: string }
+
+/** `matchScore` da lista de candidaturas (US-30): nulo = "sem dados suficientes", nunca zero. */
+export function describeScore(score: number | null | undefined): NumericScoreView {
+  if (score === null || score === undefined) return { state: 'insufficient' }
+  return { state: 'ready', score, bandLabel: bandFor(score) }
+}
+
 /** Sem `match` o score é "indisponível": nunca vira zero. Zero real continua sendo zero. */
 export function describeMatch(match: MatchResult | null | undefined): ScoreView {
   if (!match) return { state: 'unavailable' }
-  const bandLabel = match.score >= 70 ? 'Alta afinidade' : match.score >= 40 ? 'Afinidade média' : 'Baixa afinidade'
+  const bandLabel = bandFor(match.score)
   return {
     state: 'ready',
     score: match.score,
