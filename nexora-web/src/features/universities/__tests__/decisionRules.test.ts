@@ -32,3 +32,11 @@ describe('validateReason', () => {
     }
   })
 })
+
+describe('validateReason in admin mode (approving also requires a reason)', () => {
+  it('requires the reason to approve when strict', () => {
+    expect(validateReason('APPROVE', '', true)).toMatch(/motivo/i)
+    expect(validateReason('APPROVE', 'Documentação conferida', true)).toBeNull()
+    expect(validateReason('APPROVE', '', false)).toBeNull()
+  })
+})

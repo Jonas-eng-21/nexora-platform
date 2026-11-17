@@ -10,8 +10,11 @@ export function availableActions(status: AffiliationStatus): DecisionKind[] {
   return [] // REJECTED e REVOKED ficam como histórico
 }
 
-export function validateReason(kind: DecisionKind, reason: string): string | null {
-  if (kind !== 'APPROVE' && !reason.trim()) return kind === 'REJECT' ? 'Informe o motivo da rejeição.' : 'Informe o motivo da revogação.'
+/** `strictApprove`: nas intervenções do administrador o backend exige motivo também para aprovar. */
+export function validateReason(kind: DecisionKind, reason: string, strictApprove = false): string | null {
+  if ((kind !== 'APPROVE' || strictApprove) && !reason.trim()) {
+    return kind === 'REJECT' ? 'Informe o motivo da rejeição.' : kind === 'REVOKE' ? 'Informe o motivo da revogação.' : 'Informe o motivo da aprovação.'
+  }
   if (reason.length > REASON_MAX) return `O motivo pode ter até ${REASON_MAX} caracteres.`
   return null
 }
