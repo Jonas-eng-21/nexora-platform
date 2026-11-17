@@ -13,7 +13,38 @@ public record MatchResult(
 		List<String> missingRequiredSkills,
 		List<String> matchedDesiredSkills,
 		List<String> missingDesiredSkills,
-		@Schema(description = "Justificativa em texto, montada a partir dos critérios") String summary) {
+		@Schema(description = "Justificativa em texto, montada a partir dos critérios") String summary,
+		@Schema(description = "STRUCTURED (só critérios), HYBRID (com similaridade semântica) ou FALLBACK "
+				+ "(semântica indisponível: vale o estruturado)") ScoreType scoreType,
+		@Schema(description = "Score dos critérios estruturados; igual a score quando scoreType não é HYBRID")
+		int structuredScore,
+		@Schema(description = "Similaridade semântica de 0 a 100; nulo quando scoreType não é HYBRID")
+		Integer semanticScore) {
+
+	/** Resultado estruturado puro (o calculador determinístico). */
+	public MatchResult(int score, String algorithmVersion, List<CriterionResult> criteria,
+			List<String> matchedRequiredSkills, List<String> missingRequiredSkills, List<String> matchedDesiredSkills,
+			List<String> missingDesiredSkills, String summary) {
+		this(score, algorithmVersion, criteria, matchedRequiredSkills, missingRequiredSkills, matchedDesiredSkills,
+				missingDesiredSkills, summary, ScoreType.STRUCTURED, score, null);
+	}
+
+	/** Mesmo resultado com o score híbrido; os critérios estruturados continuam sendo a justificativa. */
+	public MatchResult withSemantic(int hybridScore, int semanticScore) {
+		return new MatchResult(hybridScore, algorithmVersion, criteria, matchedRequiredSkills, missingRequiredSkills,
+				matchedDesiredSkills, missingDesiredSkills,
+				summary + " Similaridade semântica de " + semanticScore + "/100 combinada ao score estruturado ("
+						+ structuredScore + ").",
+				ScoreType.HYBRID, structuredScore, semanticScore);
+	}
+
+	/** Mesmo resultado estruturado, marcado como fallback porque a análise semântica não pôde ser feita. */
+	public MatchResult asFallback() {
+		return new MatchResult(score, algorithmVersion, criteria, matchedRequiredSkills, missingRequiredSkills,
+				matchedDesiredSkills, missingDesiredSkills,
+				summary + " A análise semântica está indisponível no momento; vale apenas o score estruturado.",
+				ScoreType.FALLBACK, structuredScore, null);
+	}
 
 	public record CriterionResult(
 			MatchCriterion criterion,

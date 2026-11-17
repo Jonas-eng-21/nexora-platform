@@ -1,8 +1,11 @@
 package br.com.nexora.matching.service;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -27,6 +30,9 @@ import br.com.nexora.matching.dto.JobMatchResponse;
 import br.com.nexora.matching.dto.RecommendedJobResponse;
 import br.com.nexora.matching.dto.RecommendedStudentResponse;
 import br.com.nexora.matching.dto.StudentSummary;
+import br.com.nexora.matching.semantic.HybridScore;
+import br.com.nexora.matching.semantic.SemanticSimilarityService;
+import br.com.nexora.matching.semantic.SemanticTextBuilder;
 import br.com.nexora.shared.dto.PageResponse;
 import br.com.nexora.skills.entity.Skill;
 import br.com.nexora.students.entity.Student;
@@ -36,6 +42,11 @@ import br.com.nexora.universities.service.AcademicEligibilityService;
 /**
  * Monta a entrada do cálculo a partir do perfil, do currículo-base e das competências do catálogo.
  * O score é sempre calculado na hora: nada é gravado, então ele acompanha o currículo e a vaga atuais.
+ * <p>
+ * Com o matching semântico ligado, o score estruturado é combinado à similaridade dos embeddings
+ * ({@link HybridScore}); sem a análise semântica para um par, vale o estruturado marcado como fallback. Os
+ * embeddings vêm em lote e reaproveitados, nunca uma chamada externa por item da lista. Só o currículo-base
+ * entra nos textos: PDF e snapshot de candidatura nunca são lidos.
  */
 @Service
 public class MatchingService {
@@ -60,13 +71,16 @@ public class MatchingService {
 	private final JobService jobService;
 	private final AcademicEligibilityService eligibilityService;
 	private final MatchCalculator matchCalculator;
+	private final SemanticSimilarityService semanticSimilarity;
 
 	public MatchingService(StudentProfileService studentProfileService, JobService jobService,
-			AcademicEligibilityService eligibilityService, MatchCalculator matchCalculator) {
+			AcademicEligibilityService eligibilityService, MatchCalculator matchCalculator,
+			SemanticSimilarityService semanticSimilarity) {
 		this.studentProfileService = studentProfileService;
 		this.jobService = jobService;
 		this.eligibilityService = eligibilityService;
 		this.matchCalculator = matchCalculator;
+		this.semanticSimilarity = semanticSimilarity;
 	}
 
 	/** Compatibilidade do estudante autenticado com uma vaga aberta de empresa ativa. */
@@ -87,8 +101,10 @@ public class MatchingService {
 	@Transactional(readOnly = true)
 	public PageResponse<RecommendedJobResponse> recommendJobs(UUID studentUserId, int page, int size) {
 		Student student = studentProfileService.getByUserId(studentUserId);
-		List<RecommendedJobResponse> ranked = jobService.listOpenJobs(MAX_EVALUATED_JOBS).stream()
-				.map(job -> new RecommendedJobResponse(JobResponse.from(job), calculate(student, job)))
+		List<Job> jobs = jobService.listOpenJobs(MAX_EVALUATED_JOBS);
+		List<MatchResult> matches = calculateAll(student, jobs);
+		List<RecommendedJobResponse> ranked = java.util.stream.IntStream.range(0, jobs.size())
+				.mapToObj(i -> new RecommendedJobResponse(JobResponse.from(jobs.get(i)), matches.get(i)))
 				.sorted(BEST_MATCH_FIRST)
 				.toList();
 
@@ -119,9 +135,11 @@ public class MatchingService {
 	 * {@value #MAX_EVALUATED_STUDENTS} perfis elegíveis mais recentes.
 	 */
 	private PageResponse<RecommendedStudentResponse> recommendStudents(Job job, int page, int size) {
-		List<RecommendedStudentResponse> ranked = studentProfileService
-				.listActiveByIds(eligibilityService.eligibleStudentIds(), MAX_EVALUATED_STUDENTS).stream()
-				.map(student -> new RankedStudent(student, calculate(student, job)))
+		List<Student> students = studentProfileService
+				.listActiveByIds(eligibilityService.eligibleStudentIds(), MAX_EVALUATED_STUDENTS);
+		List<MatchResult> matches = calculateAll(job, students);
+		List<RecommendedStudentResponse> ranked = java.util.stream.IntStream.range(0, students.size())
+				.mapToObj(i -> new RankedStudent(students.get(i), matches.get(i)))
 				.sorted(BEST_MATCH_FIRST_STUDENT)
 				.map(item -> new RecommendedStudentResponse(StudentSummary.from(item.student()), item.match()))
 				.toList();
@@ -143,15 +161,97 @@ public class MatchingService {
 	 * Para quem precisa informar "nota indisponível" em vez de um número enganoso (ex.: candidaturas).
 	 */
 	public Optional<Integer> currentScore(Student student, Job job) {
-		if (student.getSkills().isEmpty() && student.getResume().interestAreas().isEmpty()) {
-			return Optional.empty();
-		}
-		return Optional.of(calculate(student, job).score());
+		return currentScores(job, List.of(student)).get(0);
+	}
+
+	/**
+	 * Mesmo critério de {@link #currentScore}, para vários estudantes de uma mesma vaga (uma página de
+	 * candidaturas), com os embeddings obtidos em lote. Um resultado por estudante, na mesma ordem.
+	 */
+	public List<Optional<Integer>> currentScores(Job job, List<Student> students) {
+		List<MatchResult> matches = calculateAll(job, students);
+		return java.util.stream.IntStream.range(0, students.size())
+				.mapToObj(i -> hasComparableData(students.get(i)) ? Optional.of(matches.get(i).score())
+						: Optional.<Integer>empty())
+				.toList();
 	}
 
 	/** Reutilizado pelas recomendações: mesma regra para qualquer par estudante–vaga. */
 	MatchResult calculate(Student student, Job job) {
-		return matchCalculator.calculate(candidateOf(student), positionOf(job));
+		return calculateAll(student, List.of(job)).get(0);
+	}
+
+	/** Um estudante contra várias vagas: os embeddings das vagas vêm em lote. */
+	private List<MatchResult> calculateAll(Student student, List<Job> jobs) {
+		List<MatchResult> structured = jobs.stream()
+				.map(job -> matchCalculator.calculate(candidateOf(student), positionOf(job))).toList();
+		if (!semanticSimilarity.isEnabled() || !hasComparableData(student) || jobs.isEmpty()) {
+			return structured;
+		}
+		List<OptionalInt> semantic = semanticSimilarity.scores(studentText(student),
+				jobs.stream().map(this::jobText).toList());
+		return combine(structured, semantic);
+	}
+
+	/** Uma vaga contra vários estudantes: os embeddings dos estudantes vêm em lote. */
+	private List<MatchResult> calculateAll(Job job, List<Student> students) {
+		List<MatchResult> structured = students.stream()
+				.map(student -> matchCalculator.calculate(candidateOf(student), positionOf(job))).toList();
+		if (!semanticSimilarity.isEnabled() || students.isEmpty()) {
+			return structured;
+		}
+		// Estudante sem nada para comparar fica só no estruturado, como no resto do matching.
+		List<Student> comparable = students.stream().filter(MatchingService::hasComparableData).toList();
+		if (comparable.isEmpty()) {
+			return structured;
+		}
+		List<OptionalInt> scores = semanticSimilarity.scores(jobText(job),
+				comparable.stream().map(this::studentText).toList());
+		Map<UUID, OptionalInt> byStudent = new HashMap<>();
+		for (int i = 0; i < comparable.size(); i++) {
+			byStudent.put(comparable.get(i).getId(), scores.get(i));
+		}
+		return java.util.stream.IntStream.range(0, students.size())
+				.mapToObj(i -> byStudent.containsKey(students.get(i).getId())
+						? combine(structured.get(i), byStudent.get(students.get(i).getId()))
+						: structured.get(i))
+				.toList();
+	}
+
+	private List<MatchResult> combine(List<MatchResult> structured, List<OptionalInt> semantic) {
+		return java.util.stream.IntStream.range(0, structured.size())
+				.mapToObj(i -> combine(structured.get(i), semantic.get(i))).toList();
+	}
+
+	private MatchResult combine(MatchResult structured, OptionalInt semantic) {
+		if (semantic.isEmpty()) {
+			return structured.asFallback();
+		}
+		return structured.withSemantic(
+				HybridScore.combine(structured.score(), semantic.getAsInt(), semanticSimilarity.semanticWeight()),
+				semantic.getAsInt());
+	}
+
+	/** Currículo-base com algo a comparar: alguma competência do catálogo ou área de interesse. */
+	private static boolean hasComparableData(Student student) {
+		return !student.getSkills().isEmpty() || !student.getResume().interestAreas().isEmpty();
+	}
+
+	private String studentText(Student student) {
+		return SemanticTextBuilder.forStudent(student.getSummary(), student.getCourse(),
+				student.getSkills().stream().map(Skill::getName).toList(), student.getResume(),
+				semanticSimilarity.maxTextLength());
+	}
+
+	private String jobText(Job job) {
+		return SemanticTextBuilder.forJob(job.getTitle(), job.getDescription(), job.getArea(), job.getWorkModel(),
+				skillNames(job, SkillRequirement.REQUIRED), skillNames(job, SkillRequirement.DESIRED),
+				semanticSimilarity.maxTextLength());
+	}
+
+	private static List<String> skillNames(Job job, SkillRequirement requirement) {
+		return job.getSkills().stream().filter(jobSkill -> jobSkill.getRequirement() == requirement)
+				.map(jobSkill -> jobSkill.getSkill().getName()).toList();
 	}
 
 	private static Candidate candidateOf(Student student) {
