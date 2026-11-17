@@ -83,6 +83,27 @@ describe('route guards', () => {
     expect((await navigate('/estudante/vagas')).name).toBe('forbidden')
   })
 
+  it.each(['/universidade', '/universidade/vinculos', '/universidade/perfil'])('isolates %s: students and companies are kept out', async (path) => {
+    for (const role of ['STUDENT', 'COMPANY']) {
+      tokenStorage.set('tok')
+      vi.mocked(authApi.me).mockResolvedValue(me(role) as never)
+      expect((await navigate(path)).name).toBe('forbidden')
+    }
+  })
+
+  it.each(['/universidade', '/universidade/vinculos', '/universidade/perfil'])('sends a visitor from %s to login', async (path) => {
+    expect((await navigate(path)).name).toBe('login')
+  })
+
+  it('lets a university open its own area but not the student or company ones', async () => {
+    tokenStorage.set('tok')
+    vi.mocked(authApi.me).mockResolvedValue(me('UNIVERSITY') as never)
+    expect((await navigate('/universidade/vinculos')).name).toBe('university-affiliations')
+    expect((await navigate('/universidade/perfil')).name).toBe('university-profile')
+    expect((await navigate('/estudante/vagas')).name).toBe('forbidden')
+    expect((await navigate('/empresa/vagas')).name).toBe('forbidden')
+  })
+
   it('lets a student open the whole student area', async () => {
     tokenStorage.set('tok')
     vi.mocked(authApi.me).mockResolvedValue(me('STUDENT') as never)

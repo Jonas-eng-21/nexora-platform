@@ -56,7 +56,16 @@ const routes: RouteRecordRaw[] = [
           { path: 'vagas/:jobId/recomendados', name: 'company-job-students', component: () => import('@/features/matching/views/RecommendedStudentsView.vue'), meta: { title: 'Estudantes recomendados' } },
         ],
       },
-      { path: 'universidade', name: 'university-home', component: AccountHomeView, meta: { requiresAuth: true, role: 'UNIVERSITY', title: 'Área da universidade' } },
+      {
+        path: 'universidade',
+        component: () => import('@/app/layouts/UniversityLayout.vue'),
+        meta: { requiresAuth: true, role: 'UNIVERSITY' },
+        children: [
+          { path: '', name: 'university-home', component: () => import('@/features/universities/views/UniversityHomeView.vue'), meta: { title: 'Início' } },
+          { path: 'vinculos', name: 'university-affiliations', component: () => import('@/features/universities/views/UniversityAffiliationsView.vue'), meta: { title: 'Solicitações de vínculo' } },
+          { path: 'perfil', name: 'university-profile', component: () => import('@/features/universities/views/UniversityProfileView.vue'), meta: { title: 'Perfil institucional' } },
+        ],
+      },
       { path: 'admin', name: 'admin-home', component: AccountHomeView, meta: { requiresAuth: true, role: 'ADMIN', title: 'Área do administrador' } },
       { path: 'acesso-negado', name: 'forbidden', component: () => import('@/app/views/ForbiddenView.vue'), meta: { requiresAuth: true, title: 'Acesso negado' } },
     ],
