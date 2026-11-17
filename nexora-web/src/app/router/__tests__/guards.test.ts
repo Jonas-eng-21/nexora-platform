@@ -64,6 +64,25 @@ describe('route guards', () => {
     expect((await navigate(path)).name).toBe('login')
   })
 
+  it.each(['/empresa', '/empresa/perfil', '/empresa/vagas', '/empresa/vagas/nova', '/empresa/vagas/abc/editar', '/empresa/vagas/abc/candidaturas', '/empresa/vagas/abc/recomendados'])(
+    'isolates %s: students are kept out', async (path) => {
+      tokenStorage.set('tok')
+      vi.mocked(authApi.me).mockResolvedValue(me('STUDENT') as never)
+      expect((await navigate(path)).name).toBe('forbidden')
+    })
+
+  it.each(['/empresa/vagas', '/empresa/vagas/abc/candidaturas', '/empresa/vagas/abc/recomendados'])('sends a visitor from %s to login', async (path) => {
+    expect((await navigate(path)).name).toBe('login')
+  })
+
+  it('keeps a company out of the student area and lets it open its own', async () => {
+    tokenStorage.set('tok')
+    vi.mocked(authApi.me).mockResolvedValue(me('COMPANY') as never)
+    expect((await navigate('/empresa/vagas/abc/candidaturas')).name).toBe('company-job-applications')
+    expect((await navigate('/empresa/vagas/nova')).name).toBe('company-job-new')
+    expect((await navigate('/estudante/vagas')).name).toBe('forbidden')
+  })
+
   it('lets a student open the whole student area', async () => {
     tokenStorage.set('tok')
     vi.mocked(authApi.me).mockResolvedValue(me('STUDENT') as never)

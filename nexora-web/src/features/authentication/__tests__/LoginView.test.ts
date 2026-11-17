@@ -7,6 +7,8 @@ import App from '@/app/App.vue'
 import { authApi } from '../api/authApi'
 
 vi.mock('../api/authApi', () => ({ authApi: { login: vi.fn(), register: vi.fn(), me: vi.fn() } }))
+vi.mock('@/features/companies/api/companyApi', () => ({ companyApi: { getProfile: vi.fn().mockResolvedValue({ id: 'c', name: 'ACME', sector: null, description: null, location: null }), saveProfile: vi.fn() } }))
+vi.mock('@/features/jobs/api/jobManagementApi', () => ({ jobManagementApi: { listMine: vi.fn().mockResolvedValue({ content: [], page: 0, size: 10, totalElements: 0, totalPages: 0 }) } }))
 
 async function openLogin() {
   const pinia = createPinia()
@@ -48,7 +50,7 @@ describe('LoginView', () => {
     const { wrapper, router } = await openLogin()
     await fillAndSubmit(wrapper, 'e@x.com', 'segredo123')
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/empresa'))
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Área da empresa'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Vagas abertas e candidaturas aguardando análise'))
   })
 
   it('shows an announced error for invalid credentials and stays on the page', async () => {
