@@ -70,7 +70,7 @@ async function confirm(reason: string) {
             <StatusBadge :tone="job.data.value.status === 'OPEN' ? 'success' : 'neutral'">{{ job.data.value.status === 'OPEN' ? 'Aberta' : 'Encerrada' }}</StatusBadge>
           </div>
           <p class="text-muted">
-            <RouterLink :to="{ name: 'admin-company', params: { companyId: job.data.value.companyId } }" class="font-medium text-primary underline underline-offset-4">{{ job.data.value.companyName }}</RouterLink>
+            <RouterLink :to="{ name: 'admin-company', params: { companyId: job.data.value.companyId } }" class="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">{{ job.data.value.companyName }}</RouterLink>
           </p>
           <p class="text-sm text-muted">{{ areaLabel(job.data.value.area) }} · {{ job.data.value.location || 'Localização não informada' }} · {{ WORK_MODEL_LABEL[job.data.value.workModel] }} · {{ JOB_LEVEL_LABEL[job.data.value.level] }} · publicada em {{ formatDate(job.data.value.createdAt) }}</p>
         </header>
