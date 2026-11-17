@@ -1,0 +1,82 @@
+{
+  "version": 2,
+  "skills": {
+    "animation-performance": {
+      "source": "emilkowalski/skills",
+      "commit": "64eb3deb9a5fbfa041faf783e0bc3fd635872e9c",
+      "sourceType": "github",
+      "skillPath": "skills/animation-performance/SKILL.md",
+      "computedHash": "1ff92f577fc2b7781ed622fd4eb5e514c252cf5cb95c3661743cd127ee01290a"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "commit": "57217cf86ba38148a57af9e90d14a4c049558330",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "7bc223e2aafbdbf6e50ea243ba6ef67fe432bb069ab439fea0390795dac0bf7f"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "commit": "e4bb5d960d87126ff3b3a8af1a104b7db67560ba",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "83485963700bcf11d5bf78118facb301676b69d918fee2e45a95e7f1a2840f6c"
+    },
+    "frontend-ui-engineering": {
+      "source": "addyosmani/agent-skills",
+      "commit": "39b723ceebf81474d0557c1fecd01eddab585563",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-ui-engineering/SKILL.md",
+      "computedHash": "1bea3daa371bfb466445f5a33ee063f2aadf27469b2308a340e803398bcb4251"
+    },
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
+      "commit": "9c61ab243def98f72da12abd41cfcf5bcd91af9d",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-mobile-development/skills/tailwind-design-system/SKILL.md",
+      "computedHash": "c807f0c9619e8c389879f55846c2e395956f1073ab6d01a93fbb30b340015ab1"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "commit": "e59ff376a41f7ca47b7541ad5c116495cbade3ee",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "9700c4f6c9460810a4158f3a6d3238d8ee58bc682e0aa7190c2c333cf6c666b1"
+    },
+    "vue-best-practices": {
+      "source": "vuejs-ai/skills",
+      "commit": "198f0cd8f7f9c0a3d9b566ccc16de6677519ee78",
+      "sourceType": "github",
+      "skillPath": "skills/vue-best-practices/SKILL.md",
+      "computedHash": "2b4ee45c8b9d77d99896c510ca1c0ecb56914b7bdda84dcbd872f3941d3b9f54"
+    },
+    "vue-pinia-best-practices": {
+      "source": "vuejs-ai/skills",
+      "commit": "198f0cd8f7f9c0a3d9b566ccc16de6677519ee78",
+      "sourceType": "github",
+      "skillPath": "skills/vue-pinia-best-practices/SKILL.md",
+      "computedHash": "3f7ab354e80570361571e9dbb6d90b9495d2d214c15fca788da6b8a181cd1cff"
+    },
+    "vue-router-best-practices": {
+      "source": "vuejs-ai/skills",
+      "commit": "198f0cd8f7f9c0a3d9b566ccc16de6677519ee78",
+      "sourceType": "github",
+      "skillPath": "skills/vue-router-best-practices/SKILL.md",
+      "computedHash": "6618c4b95765c4777de9d1d6500b372836c73ecc5ad0f4134ac65f71fb06513f"
+    },
+    "vue-testing-best-practices": {
+      "source": "vuejs-ai/skills",
+      "commit": "198f0cd8f7f9c0a3d9b566ccc16de6677519ee78",
+      "sourceType": "github",
+      "skillPath": "skills/vue-testing-best-practices/SKILL.md",
+      "computedHash": "f4dc766acbf3883e5840669dbc347d519b084f559db6704ea6257b8e2443cdec"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "commit": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "4f68ae07187fb0d1fb78c88b503d089da4cf5a9d9625d1f2e425b1590bf96d92"
+    }
+  }
+}
