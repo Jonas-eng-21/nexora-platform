@@ -24,7 +24,15 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(
   (response) => response,
-  (error: unknown) => {
+  async (error: unknown) => {
+    // Downloads usam responseType "blob": o corpo do erro (problem+json) também chega como Blob.
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      try {
+        error.response.data = JSON.parse(await error.response.data.text())
+      } catch {
+        error.response.data = null
+      }
+    }
     const apiError = toApiError(error)
     // /auth/* devolve 401 para credencial inválida: isso é erro de formulário, não sessão expirada.
     const url = axios.isAxiosError(error) ? (error.config?.url ?? '') : ''
