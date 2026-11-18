@@ -4,6 +4,9 @@
 .idea/
 .vscode/
 
+# Pasta local do TCC (documento acadêmico): não vai para o GitHub
+TCC/
+
 # Antigravity Skills locais
 .agents/
 
