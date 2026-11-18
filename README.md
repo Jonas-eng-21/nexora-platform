@@ -200,28 +200,54 @@ SPA Vue 3 em modo desenvolvimento (Vite com HMR), serviço `frontend` do Compose
   docker compose exec frontend npm run build     # vue-tsc + build de produção
   ```
   Sem o serviço no ar: `docker compose run --rm --no-deps frontend npm test`.
-- **Limitações:** imagem de desenvolvimento (sem Nginx/HTTPS, que é escopo da US-39); se a API ainda estiver
+- **Limitações:** imagem de desenvolvimento (Nginx/HTTPS ficam na stack de produção, veja abaixo); se a API ainda estiver
   iniciando, a tela mostra erro recuperável e basta tentar de novo; `npm audit` aponta 5 avisos moderados apenas na
   cadeia de teste (`@vue/test-utils` → `editorconfig` → `minimatch`), fora do bundle.
 - **Porta 5432 ocupada no host?** Defina `POSTGRES_PORT=5433` (ou outra) no `.env`.
 
 ## Produção (`compose.prod.yaml`)
 
-Stack separada da de desenvolvimento: **só o serviço `web` (Nginx) publica portas** (80 redireciona para HTTPS; 443 serve a
-UI estática e `/api/`). Backend e PostgreSQL ficam apenas na rede interna. O backend sobe com `SPRING_PROFILES_ACTIVE=prod`
-(fixo no arquivo; Swagger e logs DEBUG desligados). O `compose.yaml` continua sendo o de desenvolvimento e agora publica
-backend e Vite **somente em `127.0.0.1`** (para outra interface: `BACKEND_BIND_ADDRESS` / `FRONTEND_BIND_ADDRESS`).
+Stack separada da de desenvolvimento (projeto Compose `nexora-prod`, volumes próprios). **Guia passo a passo para a VPS
+Hostinger/Ubuntu: [`docs/DEPLOY_HOSTINGER_UBUNTU.md`](docs/DEPLOY_HOSTINGER_UBUNTU.md).** Evidências, matriz de requisitos e
+registro de riscos da US-39: [`context/US39_CONFIGURACAO_PRODUCAO_NEXORA.md`](context/US39_CONFIGURACAO_PRODUCAO_NEXORA.md).
+
+| | Desenvolvimento (`compose.yaml` [+ `compose.dev.yaml`]) | Produção (`compose.prod.yaml`) |
+|---|---|---|
+| Frontend | Vite (HMR) na 127.0.0.1:5173 | arquivos estáticos compilados, servidos pelo Nginx |
+| Backend | `dev` (Swagger ligado), 127.0.0.1:8080 | `prod` fixo (Swagger/OpenAPI off), **sem porta no host** |
+| PostgreSQL | 127.0.0.1:5433 (`POSTGRES_PORT`) | **sem porta no host**, `max_connections` e memória limitados |
+| Entrada pública | nenhuma (somente loopback) | só o `web`: 80 (redireciona/ACME) e 443 |
+| Variáveis | `.env` (de `.env.example`) | `.env.prod` (de `.env.prod.example`), segredos próprios |
 
 ```bash
-# 1. Arquivo de variáveis de produção (fora do git): POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, JWT_SECRET,
-#    TLS_CERT_DIR (e, opcionalmente, ADMIN_EMAIL, ADMIN_PASSWORD, JWT_EXPIRATION, HTTP_PORT, HTTPS_PORT).
-# 2. TLS_CERT_DIR deve conter fullchain.pem e privkey.pem de um certificado válido para o domínio.
+cp .env.prod.example .env.prod && chmod 600 .env.prod     # preencha (nunca versionado)
 docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
 ```
 
-- **TLS/HSTS:** os certificados reais não vão para o repositório nem para a imagem. O HSTS vem desligado em
-  `nexora-web/nginx/security-headers.conf`; habilite-o só depois de o domínio responder HTTPS válido de forma estável.
-- **CSP:** a política forte depende de ajustes no frontend (script inline do tema) e está fora desta etapa.
-- **Dados:** a stack usa o projeto Compose `nexora-prod`, com volumes próprios (`postgres_data`, `resumes_data`); faça backup
-  dos dois juntos. Nunca use `down -v` em produção.
-- **Migração:** a V20 adiciona `users.version` (concorrência otimista) de forma aditiva; contas existentes recebem 0.
+- **Mesma origem, sem CORS:** o Nginx serve a SPA em `/` e encaminha `/api/` ao backend (método, query string,
+  `Authorization: Bearer` e corpo intactos). O Axios usa `baseURL: '/api/v1'`. Nenhuma origem externa recebe
+  `Access-Control-Allow-Origin` (o backend não tem CORS habilitado; coberto por `CorsPolicyTests` e pelo teste ponta a
+  ponta). Não existe curinga.
+- **HTTPS:** certificado real do Let's Encrypt via Certbot (HTTP-01, `scripts/prod/tls-issue.sh`), copiado para
+  `TLS_CERT_DIR` (`fullchain.pem` + `privkey.pem`, fora do Git e da imagem). No primeiro boot, sem certificado, o Nginx
+  usa um autoassinado **temporário** só para responder ao desafio. Renovação: `scripts/prod/tls-renew.sh` (timer
+  systemd, seção 12 do guia), que recarrega o Nginx. HTTP redireciona para `https://$DOMAIN`.
+- **HSTS** vem desligado (`HSTS_VALUE` vazio); ative só depois do HTTPS real estável.
+- **CSP** forte: `script-src 'self'` e `style-src 'self'`, sem `unsafe-inline` nem `unsafe-eval`. O script do tema agora é o
+  arquivo externo `nexora-web/public/theme-init.js`. Também: `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Permissions-Policy`, COOP/CORP.
+- **Limite de tentativas:** login e cadastro (`/api/v1/auth/`) têm `limit_req` no Nginx, por IP (20/min + rajada de 20,
+  `AUTH_RATE_LIMIT`), com 429 `TOO_MANY_REQUESTS` em JSON e `Retry-After`. Estado em memória (instância única). Atrás de NAT o
+  IP é compartilhado.
+- **Upload:** 5 MiB por PDF no frontend, Spring (`max-file-size`) e serviço; o Nginx corta em 6 MiB de corpo
+  (`client_max_body_size`) com 413 JSON. PDFs ficam no volume `resumes_data` (só o backend o monta; sem rota pública).
+- **Healthchecks:** PostgreSQL (`pg_isready`), backend (`/actuator/health/readiness` na porta interna 8081, sem
+  detalhes, nunca publicada nem proxied) e Nginx (`/healthz`). Só `health` está exposto do Actuator.
+- **Recursos (VPS ~4 GB):** limites `mem_limit` (768m/1g/128m), heap da JVM a 60% do limite, pool Hikari 10, PostgreSQL
+  `max_connections=40`, logs em rotação (3 × 10 MB).
+- **Backup:** `scripts/prod/backup.sh` (banco + PDFs no mesmo instante), `scripts/prod/restore-check.sh` (restaura num
+  banco descartável). Cópia fora da VPS e restauração real: guia, seção 16. Volume Docker não é backup.
+- **Dados:** nunca use `docker compose down -v` em produção. A V20 adiciona `users.version` (concorrência otimista) de
+  forma aditiva.
+- **Limitações:** instância única (rate limit e storage de PDFs locais); JWT no `sessionStorage` (decisão do MVP, mitigada
+  pela CSP); o HTTPS público, o IP real atrás do Docker e o consumo na VPS real só serão comprovados na US-40.
