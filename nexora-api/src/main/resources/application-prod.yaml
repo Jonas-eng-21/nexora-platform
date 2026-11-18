@@ -14,6 +14,8 @@ springdoc:
     enabled: false
 
 server:
+  # Encerramento gracioso no "docker stop" (termina requisições em andamento antes de sair).
+  shutdown: graceful
   error:
     # Respostas de erro nunca carregam stack trace, mensagem de exceção nem detalhes de binding.
     include-stacktrace: never
@@ -24,3 +26,8 @@ server:
 spring:
   jpa:
     show-sql: false
+  datasource:
+    hikari:
+      # Instância única numa VPS pequena (~4 GB): pool enxuto, abaixo do max_connections do PostgreSQL.
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: 2
