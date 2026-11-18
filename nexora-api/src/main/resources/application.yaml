@@ -18,6 +18,22 @@ spring:
       max-file-size: 5MB
       max-request-size: 6MB
 
+# Healthcheck do container: só /actuator/health (liveness/readiness), numa porta de gerenciamento separada que o
+# Compose nunca publica e o proxy nunca encaminha. Sem detalhes (banco, disco) e sem nenhum outro endpoint.
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true
+
 # Documentação OpenAPI desligada por padrão; habilitada apenas no perfil dev.
 springdoc:
   api-docs:

@@ -44,6 +44,8 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 						.requestMatchers("/api/v1/auth/**").permitAll()
+						// Healthcheck (porta de gerenciamento, não publicada): sem detalhes e sem autenticação.
+						.requestMatchers("/actuator/health/**").permitAll()
 						// Documentação: só é servida no perfil dev (springdoc desligado nos demais → 404).
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.anyRequest().authenticated())

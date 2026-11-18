@@ -56,6 +56,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
+		<!-- Somente /actuator/health (healthcheck do container), em porta de gerenciamento separada. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 		<!-- SDK oficial do Gemini, usado só para embeddings de texto (GeminiEmbeddingProvider). -->
 		<dependency>
 			<groupId>com.google.genai</groupId>
