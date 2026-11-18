@@ -1,0 +1,26 @@
+#!/bin/sh
+# Escolhe o certificado que o Nginx usa, por links em /etc/nginx/runtime-certs:
+#   - se /etc/nginx/certs tem fullchain.pem e privkey.pem (montados do host): usa os reais;
+#   - senão, gera (uma vez por container) um certificado autoassinado TEMPORÁRIO só para o Nginx poder subir
+#     antes da emissão do certificado real. O navegador o recusa de propósito: ele NÃO é HTTPS válido.
+# Chamado na subida (docker-entrypoint.d) e pelo nexora-tls-reload depois de emitir/renovar o certificado.
+set -eu
+CERTS=/etc/nginx/certs
+RUN=/etc/nginx/runtime-certs
+mkdir -p "$RUN"
+
+if [ -s "$CERTS/fullchain.pem" ] && [ -s "$CERTS/privkey.pem" ]; then
+  ln -sf "$CERTS/fullchain.pem" "$RUN/fullchain.pem"
+  ln -sf "$CERTS/privkey.pem" "$RUN/privkey.pem"
+  echo "nexora-tls: usando o certificado de $CERTS"
+else
+  if [ ! -s "$RUN/placeholder-fullchain.pem" ]; then
+    openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
+      -subj "/CN=${NEXORA_DOMAIN:-localhost}" \
+      -keyout "$RUN/placeholder-privkey.pem" -out "$RUN/placeholder-fullchain.pem" >/dev/null 2>&1
+    chmod 600 "$RUN/placeholder-privkey.pem"
+  fi
+  ln -sf "$RUN/placeholder-fullchain.pem" "$RUN/fullchain.pem"
+  ln -sf "$RUN/placeholder-privkey.pem" "$RUN/privkey.pem"
+  echo "nexora-tls: AVISO - sem certificado em $CERTS; usando um autoassinado temporário (HTTPS NÃO válido)."
+fi

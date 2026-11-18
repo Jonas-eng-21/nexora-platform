@@ -1,5 +1,17 @@
-# Nexora — origem pública única para a SPA estática e para a API (/api/).
-# Certificados: montados em /etc/nginx/certs/{fullchain.pem,privkey.pem} (nunca vão para a imagem nem para o git).
+# Nexora — origem pública única (HTTPS) para a SPA estática e para a API (/api/).
+# Este arquivo é um TEMPLATE: o entrypoint do Nginx o processa com envsubst (somente variáveis NEXORA_*).
+#   NEXORA_DOMAIN : domínio canônico (destino do redirecionamento HTTP -> HTTPS)
+#   NEXORA_AUTH_RATE : taxa sustentada de login/cadastro por IP (ex.: 20r/m)
+#   NEXORA_HSTS   : valor do Strict-Transport-Security (vazio = desligado; ver security-headers.inc.template)
+# Certificados: /etc/nginx/certs/{fullchain.pem,privkey.pem} montados do host (nunca na imagem nem no git).
+# Sem eles, o Nginx sobe com um certificado temporário (veja nexora-tls-link) para permitir a emissão do real.
+
+# Limite de tentativas nos endpoints de autenticação (login e cadastro), por IP real do cliente.
+# Padrão: 20 requisições/min sustentadas (NEXORA_AUTH_RATE) com rajada de 20; acima disso, 429 + Retry-After.
+# Estado em memória do Nginx (instância única; zera ao reiniciar o container). Atrás de NAT (ex.: rede de uma
+# universidade) o IP é compartilhado, por isso o limite é folgado para uso humano e restritivo para automação.
+limit_req_zone $binary_remote_addr zone=nexora_auth:10m rate=${NEXORA_AUTH_RATE};
+limit_req_status 429;
 
 server {
     listen 80 default_server;
@@ -7,8 +19,17 @@ server {
     server_name _;
     server_tokens off;
 
-    # Somente redireciona; nada é servido em HTTP.
-    return 301 https://$host$request_uri;
+    # Desafio HTTP-01 do Let's Encrypt (webroot compartilhado com o serviço certbot).
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+    # O resto só redireciona para o domínio canônico em HTTPS; nada é servido em HTTP.
+    location / {
+        return 301 https://${NEXORA_DOMAIN}$request_uri;
+    }
 }
 
 server {
@@ -18,8 +39,8 @@ server {
     server_name _;
     server_tokens off;
 
-    ssl_certificate     /etc/nginx/certs/fullchain.pem;
-    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_certificate     /etc/nginx/runtime-certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/runtime-certs/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers off;
     ssl_session_cache shared:SSL:10m;
@@ -32,33 +53,33 @@ server {
     client_max_body_size 6m;
     client_body_timeout 30s;
 
-    include /etc/nginx/snippets/security-headers.conf;
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+
+    include /etc/nginx/conf.d/security-headers.inc;
 
     root /usr/share/nginx/html;
     index index.html;
 
-    # API: o URI original (/api/v1/..., query string, método e corpo) segue intacto até o backend
-    # (proxy_pass sem URI). Respostas de erro do backend passam como estão (JSON), sem reescrita.
+    # Healthcheck do proxy (o do backend é o /actuator/health interno do container).
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        include /etc/nginx/conf.d/security-headers.inc;
+        add_header Cache-Control "no-store" always;
+        return 200 "ok\n";
+    }
+
+    # Autenticação: mesmo proxy da API, com limite de tentativas.
+    location /api/v1/auth/ {
+        limit_req zone=nexora_auth burst=20 nodelay;
+        include /etc/nginx/snippets/api-proxy.conf;
+    }
+
+    # API: respostas de erro do backend passam como estão (JSON), sem reescrita.
     location /api/ {
-        # Variável + resolver do Docker: o nome "backend" é resolvido de novo (TTL curto), então recriar só o
-        # backend não deixa o proxy com IP antigo. Sem URI após a variável, o caminho original segue intacto.
-        set $backend_upstream http://backend:8080;
-        proxy_pass $backend_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Connection "";
-        proxy_read_timeout 60s;
-        proxy_send_timeout 60s;
-        # O backend já envia estes dois; o servidor define os seus em nível de server (evita duplicata).
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header X-Frame-Options;
-        # Falha de conexão com o backend vira JSON, nunca HTML.
-        error_page 502 503 504 = @api_unavailable;
-        # error_page não é herdado quando o bloco define o seu: repetimos o 413 aqui.
-        error_page 413 = @too_large;
+        include /etc/nginx/snippets/api-proxy.conf;
     }
 
     # Corpo acima do limite: mesmo código do backend para o PDF grande (RESUME_FILE_TOO_LARGE), em JSON.
@@ -66,14 +87,22 @@ server {
 
     location @too_large {
         default_type application/problem+json;
-        include /etc/nginx/snippets/security-headers.conf;
+        include /etc/nginx/conf.d/security-headers.inc;
         add_header Cache-Control "no-store" always;
         return 413 '{"status":413,"code":"RESUME_FILE_TOO_LARGE","detail":"O PDF excede o limite de 5 MiB (5.242.880 bytes)."}';
     }
 
+    location @too_many_requests {
+        default_type application/problem+json;
+        include /etc/nginx/conf.d/security-headers.inc;
+        add_header Cache-Control "no-store" always;
+        add_header Retry-After "60" always;
+        return 429 '{"status":429,"code":"TOO_MANY_REQUESTS","detail":"Muitas tentativas. Aguarde um minuto e tente novamente."}';
+    }
+
     location @api_unavailable {
         default_type application/problem+json;
-        include /etc/nginx/snippets/security-headers.conf;
+        include /etc/nginx/conf.d/security-headers.inc;
         add_header Cache-Control "no-store" always;
         return 503 '{"status":503,"code":"SERVICE_UNAVAILABLE","detail":"Serviço temporariamente indisponível."}';
     }
@@ -81,7 +110,7 @@ server {
     # Assets com hash no nome (Vite): cache longo e imutável.
     location /assets/ {
         try_files $uri =404;
-        include /etc/nginx/snippets/security-headers.conf;
+        include /etc/nginx/conf.d/security-headers.inc;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
     }
 
@@ -90,8 +119,8 @@ server {
         return 404;
     }
 
-    # A documentação OpenAPI não existe em produção; 404 explícito em vez de cair no fallback da SPA.
-    location ~ ^/(v3/api-docs|swagger-ui) {
+    # A documentação OpenAPI e o Actuator não existem na origem pública; 404 explícito em vez do fallback da SPA.
+    location ~ ^/(v3/api-docs|swagger-ui|actuator) {
         return 404;
     }
 
@@ -103,7 +132,7 @@ server {
     # A SPA nunca é cacheada de forma agressiva; rotas do Vue Router caem no index.html.
     location / {
         try_files $uri /index.html;
-        include /etc/nginx/snippets/security-headers.conf;
+        include /etc/nginx/conf.d/security-headers.inc;
         add_header Cache-Control "no-cache" always;
     }
 }

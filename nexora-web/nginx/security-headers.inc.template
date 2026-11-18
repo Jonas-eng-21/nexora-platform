@@ -1,0 +1,14 @@
+# Headers de defesa em profundidade. Incluído em todo bloco que usa add_header (o nginx não herda add_header
+# de um nível superior quando o bloco define o seu próprio). Gerado por envsubst (só variáveis NEXORA_*).
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header X-Frame-Options "DENY" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+add_header Cross-Origin-Opener-Policy "same-origin" always;
+add_header Cross-Origin-Resource-Policy "same-origin" always;
+# CSP sem 'unsafe-inline' e sem 'unsafe-eval': o tema vem de /theme-init.js (externo) e o Vue só altera estilos pelo
+# CSSOM (permitido). Tudo é da própria origem; a API também (connect-src 'self'). PDFs são baixados, nunca embutidos.
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+# HSTS só depois do HTTPS real estável: NEXORA_HSTS vazio (padrão) = cabeçalho NÃO enviado (add_header com valor vazio
+# é omitido). Depois: NEXORA_HSTS=max-age=300 e, mais tarde, max-age=31536000.
+add_header Strict-Transport-Security "${NEXORA_HSTS}" always;

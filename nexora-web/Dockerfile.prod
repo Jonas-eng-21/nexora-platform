@@ -12,8 +12,19 @@ RUN npm run build
 
 # ---------- Estágio 2: Nginx ----------
 FROM nginx:stable-alpine AS runtime
-RUN rm -f /etc/nginx/conf.d/default.conf
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
+# openssl: só para o certificado temporário do primeiro boot (nexora-tls-link). wget já existe (healthcheck).
+RUN apk add --no-cache openssl \
+ && rm -f /etc/nginx/conf.d/default.conf \
+ && mkdir -p /var/www/certbot /etc/nginx/snippets
+# Só variáveis NEXORA_* entram no envsubst dos templates; $host, $uri etc. do Nginx ficam intactos.
+ENV NGINX_ENVSUBST_FILTER=NEXORA_ \
+    NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d \
+    NEXORA_DOMAIN=localhost \
+    NEXORA_AUTH_RATE=20r/m \
+    NEXORA_HSTS=
+COPY nginx/default.conf.template nginx/security-headers.inc.template /etc/nginx/templates/
+COPY nginx/api-proxy.conf /etc/nginx/snippets/api-proxy.conf
+COPY --chmod=755 nginx/nexora-tls-link nginx/nexora-tls-reload /usr/local/bin/
+COPY --chmod=755 nginx/10-nexora-tls.sh /docker-entrypoint.d/10-nexora-tls.sh
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80 443

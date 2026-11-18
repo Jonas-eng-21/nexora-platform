@@ -1,0 +1,6 @@
+#!/bin/sh
+# Reaplica a escolha do certificado e recarrega o Nginx sem derrubar conexões. Valida a configuração antes.
+set -eu
+/usr/local/bin/nexora-tls-link
+nginx -t
+nginx -s reload
