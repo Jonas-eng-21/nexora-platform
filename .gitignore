@@ -14,3 +14,7 @@ TCC/
 # Claude Code: configuração local (plugins/skills), não vai para o GitHub
 .claude/
 
+
+# Documentação local (contexto do TCC e guias): não vai para o GitHub
+/context/
+/docs/
